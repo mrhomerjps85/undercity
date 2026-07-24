@@ -346,6 +346,7 @@ function renderWorldBossCard(worldBoss) {
   document.getElementById('worldboss-icon').src = `/images/monsters/${worldBoss.image}.svg`;
   document.getElementById('worldboss-name').textContent = worldBoss.name;
   updateWorldBossBar(worldBoss.currentHp, worldBoss.maxHp);
+  renderWorldBossContributors(worldBoss.topContributors);
 
   const statusEl = document.getElementById('worldboss-status');
   const attackBtn = document.getElementById('worldboss-attack-btn');
@@ -360,6 +361,23 @@ function renderWorldBossCard(worldBoss) {
   }
 }
 
+// Renders the top-10 damage leaderboard for the boss's current life. Deliberately does
+// NOT get cleared when the boss dies - the final standings stay visible until the next
+// life starts producing its own contributions (a fresh room load after respawn will pass
+// an empty array here naturally, since a new generation has no contributions yet).
+function renderWorldBossContributors(topContributors) {
+  const container = document.getElementById('worldboss-contributors');
+  const list = document.getElementById('worldboss-contributors-list');
+  if (!topContributors || topContributors.length === 0) {
+    container.classList.add('hidden');
+    return;
+  }
+  container.classList.remove('hidden');
+  list.innerHTML = topContributors.map((c, i) => `
+    <li><span class="wbc-rank">#${i + 1}</span>${c.character_name} <span class="wbc-dmg">${c.damage_dealt.toLocaleString()} dmg</span></li>
+  `).join('');
+}
+
 function updateWorldBossBar(currentHp, maxHp) {
   const pct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
   document.getElementById('worldboss-fill').style.width = pct + '%';
@@ -372,6 +390,7 @@ document.getElementById('worldboss-attack-btn').addEventListener('click', async 
   try {
     const data = await api('/worldboss/attack', { method: 'POST', body: JSON.stringify({ worldBossId: currentWorldBossId }) });
     updateWorldBossBar(data.bossCurrentHp, data.bossMaxHp);
+    renderWorldBossContributors(data.topContributors);
     showToast(`Hit for ${data.damage} damage!`);
     if (data.bossDefeated && data.defeatSummary) {
       const mine = data.defeatSummary.find(c => c.characterId === state.character.id);
@@ -1248,9 +1267,10 @@ function connectSocket() {
   });
 
   // Lets everyone in the room see the boss's HP tick down live, not just whoever's attacking.
-  socket.on('world_boss_update', ({ worldBossId, currentHp, maxHp, lastHitBy, lastHitDamage }) => {
+  socket.on('world_boss_update', ({ worldBossId, currentHp, maxHp, lastHitBy, lastHitDamage, topContributors }) => {
     if (worldBossId !== currentWorldBossId) return;
     updateWorldBossBar(currentHp, maxHp);
+    renderWorldBossContributors(topContributors);
     if (lastHitBy && lastHitBy !== state.character.name) {
       document.getElementById('worldboss-status').textContent = `${lastHitBy} hit it for ${lastHitDamage}.`;
     }

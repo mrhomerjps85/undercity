@@ -128,7 +128,13 @@ Everyone shares the same world, monsters, and leaderboard.
   **Kingpin's Signet** drop (15% chance, needs level 25 to equip but anyone
   can earn the drop). It respawns 3 hours after death. HP updates broadcast
   live over the socket layer to everyone standing in the room, whether
-  they're attacking or just watching.
+  they're attacking or just watching. A **top-10 damage leaderboard** updates
+  live the same way - every hit rebroadcasts the current standings to
+  everyone in the room, not just the attacker, so spectators can watch who's
+  leading in real time. It's scoped per "generation" (the boss's current
+  life), so it naturally resets to empty once the boss respawns, but the
+  final standings stay visible for a while after a kill rather than
+  vanishing the instant it dies.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

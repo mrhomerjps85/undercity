@@ -33,6 +33,19 @@ function processRespawn(boss) {
   return db.prepare('SELECT * FROM world_bosses WHERE id = ?').get(boss.id);
 }
 
+// Top damage-dealers for the boss's CURRENT life (generation) - resets to empty
+// each time it respawns, since contributions are scoped per-generation.
+function getTopContributors(worldBossId, generation, limit = 10) {
+  return db.prepare(`
+    SELECT c.name as character_name, wbc.damage_dealt
+    FROM world_boss_contributions wbc
+    JOIN characters c ON c.id = wbc.character_id
+    WHERE wbc.world_boss_id = ? AND wbc.generation = ?
+    ORDER BY wbc.damage_dealt DESC
+    LIMIT ?
+  `).all(worldBossId, generation, limit);
+}
+
 function serializeBoss(boss) {
   return {
     id: boss.id,
@@ -43,6 +56,7 @@ function serializeBoss(boss) {
     isAlive: !!boss.is_alive,
     respawnAt: boss.respawn_at,
     image: boss.image,
+    topContributors: getTopContributors(boss.id, boss.generation, 10),
   };
 }
 
@@ -118,6 +132,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
       lastHitBy: req.character.name,
       lastHitDamage: damage,
       lastHitCrit: isCrit,
+      topContributors: getTopContributors(boss.id, boss.generation, 10),
     });
   }
 
@@ -128,6 +143,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     bossMaxHp: boss.max_hp,
     bossDefeated: newHp <= 0,
     defeatSummary,
+    topContributors: getTopContributors(boss.id, boss.generation, 10),
   });
 });
 
@@ -135,7 +151,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
 // rolls an independent item-drop chance per contributor, then puts the boss on its respawn timer.
 function distributeRewardsAndRespawn(boss) {
   const contributions = db.prepare(`
-    SELECT * FROM world_boss_contributions WHERE world_boss_id = ? AND generation = ?
+    SELECT * FROM world_boss_contributions WHERE world_boss_id = ? AND generation = ? ORDER BY damage_dealt DESC
   `).all(boss.id, boss.generation);
 
   const totalDamage = contributions.reduce((sum, c) => sum + c.damage_dealt, 0) || 1;
