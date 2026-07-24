@@ -175,6 +175,10 @@ document.getElementById('create-char-form').addEventListener('submit', async (e)
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await api('/auth/logout', { method: 'POST' });
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
   state.user = null;
   state.character = null;
   showScreen('auth-screen');
