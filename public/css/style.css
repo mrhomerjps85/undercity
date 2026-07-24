@@ -308,6 +308,51 @@ button {
 }
 .credits-link:hover { color: var(--ink-dim); }
 
+/* ============ TUTORIAL ============ */
+.tutorial-welcome-text {
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 16px 0 24px;
+}
+.tutorial-welcome-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.tutorial-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 250;
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel-raised));
+  border-bottom: 2px solid var(--gold);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--ink);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.tutorial-banner span { font-family: var(--font-heading); letter-spacing: 0.3px; }
+
+.tutorial-highlight {
+  outline: 3px solid var(--gold-bright);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px rgba(232,168,60,0.25);
+  animation: tutorial-pulse 1.5s ease-in-out infinite;
+  position: relative;
+  z-index: 40;
+}
+@keyframes tutorial-pulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(232,168,60,0.25); }
+  50% { box-shadow: 0 0 0 12px rgba(232,168,60,0.08); }
+}
+
 .panel {
   flex: 1;
   padding: 24px 28px;

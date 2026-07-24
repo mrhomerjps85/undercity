@@ -82,7 +82,7 @@ function getRoomDetails(roomId, character) {
 
 router.get('/room/current', requireAuth, requireCharacter, (req, res) => {
   const details = getRoomDetails(req.character.current_room_id, req.character);
-  res.json(details);
+  res.json({ ...details, tutorialStep: req.character.tutorial_step });
 });
 
 router.post('/move', requireAuth, requireCharacter, (req, res) => {
@@ -101,8 +101,15 @@ router.post('/move', requireAuth, requireCharacter, (req, res) => {
   }
 
   db.prepare('UPDATE characters SET current_room_id = ? WHERE id = ?').run(nextRoomId, req.character.id);
+
+  let tutorialStep = req.character.tutorial_step;
+  if (tutorialStep === 1) {
+    tutorialStep = 2;
+    db.prepare('UPDATE characters SET tutorial_step = 2 WHERE id = ?').run(req.character.id);
+  }
+
   const details = getRoomDetails(nextRoomId, req.character);
-  res.json(details);
+  res.json({ ...details, tutorialStep });
 });
 
 // List all zones (for the Travel list). Includes whether the character meets the level requirement.

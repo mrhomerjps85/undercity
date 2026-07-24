@@ -55,8 +55,15 @@ router.post('/equip', requireAuth, requireCharacter, (req, res) => {
 
   db.prepare('UPDATE character_inventory SET equipped = 1 WHERE id = ?').run(inventoryId);
 
+  let tutorialCompletedNow = false;
+  if (req.character.tutorial_step === 4) {
+    const TUTORIAL_COMPLETION_GOLD = 150;
+    db.prepare('UPDATE characters SET tutorial_step = 5, gold = gold + ? WHERE id = ?').run(TUTORIAL_COMPLETION_GOLD, req.character.id);
+    tutorialCompletedNow = true;
+  }
+
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
-  res.json({ success: true, character: serializeCharacter(updated) });
+  res.json({ success: true, character: serializeCharacter(updated), tutorialCompletedNow });
 });
 
 router.post('/unequip', requireAuth, requireCharacter, (req, res) => {

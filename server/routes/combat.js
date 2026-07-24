@@ -88,6 +88,10 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     droppedItems = rollDrops(character.id, roomMonster.id);
     completedQuests = progressKillQuests(character.id, roomMonster.id);
 
+    if (character.tutorial_step === 2) {
+      db.prepare('UPDATE characters SET tutorial_step = 3 WHERE id = ?').run(character.id);
+    }
+
     // Quest rewards may have added exp/gold outside the applyExpGain loop above;
     // re-check for any level-ups that unlocks now that exp has been topped up.
     if (completedQuests.length > 0) {

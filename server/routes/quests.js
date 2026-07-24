@@ -137,7 +137,14 @@ router.post('/accept', requireAuth, requireCharacter, (req, res) => {
   }
 
   db.prepare('INSERT INTO character_quests (character_id, quest_template_id) VALUES (?, ?)').run(req.character.id, questTemplateId);
-  res.json({ success: true });
+
+  let tutorialStep = req.character.tutorial_step;
+  if (tutorialStep === 3) {
+    tutorialStep = 4;
+    db.prepare('UPDATE characters SET tutorial_step = 4 WHERE id = ?').run(req.character.id);
+  }
+
+  res.json({ success: true, tutorialStep });
 });
 
 module.exports = router;

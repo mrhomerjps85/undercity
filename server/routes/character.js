@@ -115,4 +115,29 @@ router.get('/me', requireAuth, requireCharacter, (req, res) => {
   res.json({ character: serializeCharacter(req.character) });
 });
 
+// Begins the tutorial: grants a starter weapon (so there's something to equip in the
+// last step) and advances to step 1 ("move to a room with a monster").
+router.post('/tutorial/start', requireAuth, requireCharacter, (req, res) => {
+  if (req.character.tutorial_step !== 0) {
+    return res.status(400).json({ error: 'Tutorial already started.' });
+  }
+  const starterWeapon = db.prepare("SELECT id FROM item_templates WHERE name = 'Rusty Switchblade'").get();
+  if (starterWeapon) {
+    db.prepare('INSERT INTO character_inventory (character_id, item_template_id) VALUES (?, ?)').run(req.character.id, starterWeapon.id);
+  }
+  db.prepare('UPDATE characters SET tutorial_step = 1 WHERE id = ?').run(req.character.id);
+  const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
+  res.json({ character: serializeCharacter(updated) });
+});
+
+// Skips the tutorial entirely - jumps straight to "done," no completion reward.
+router.post('/tutorial/skip', requireAuth, requireCharacter, (req, res) => {
+  if (req.character.tutorial_step >= 5) {
+    return res.status(400).json({ error: 'Tutorial already finished.' });
+  }
+  db.prepare('UPDATE characters SET tutorial_step = 5 WHERE id = ?').run(req.character.id);
+  const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
+  res.json({ character: serializeCharacter(updated) });
+});
+
 module.exports = { router, serializeCharacter, getEquippedBonuses, getActiveSetInfo, getEquippedWeaponRarity };

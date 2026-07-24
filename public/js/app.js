@@ -7,6 +7,72 @@ const state = {
   currentRoomDetails: null,
 };
 
+// ---------- Tutorial ----------
+const TUTORIAL_STEPS = {
+  1: { text: "Move to a different room using the arrows or W/A/S/D — look for one with monsters in it.", highlight: '.dpad' },
+  2: { text: 'Click Attack on a monster to fight it.', highlight: '#monster-list' },
+  3: { text: 'Switch to the Available tab below and accept a quest.', highlight: '.quest-card' },
+  4: { text: 'Open your Inventory tab and equip the weapon we gave you.', highlight: '[data-panel="panel-inventory"]' },
+};
+
+function clearTutorialHighlight() {
+  document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+}
+
+function renderTutorialUI() {
+  const modal = document.getElementById('tutorial-welcome-modal');
+  const banner = document.getElementById('tutorial-banner');
+  clearTutorialHighlight();
+
+  const step = state.character ? state.character.tutorial_step : null;
+  if (step === 0) {
+    modal.classList.remove('hidden');
+    banner.classList.add('hidden');
+  } else if (step >= 1 && step <= 4) {
+    modal.classList.add('hidden');
+    banner.classList.remove('hidden');
+    document.getElementById('tutorial-banner-text').textContent = TUTORIAL_STEPS[step].text;
+    const target = document.querySelector(TUTORIAL_STEPS[step].highlight);
+    if (target) target.classList.add('tutorial-highlight');
+  } else {
+    modal.classList.add('hidden');
+    banner.classList.add('hidden');
+  }
+}
+
+function applyTutorialStep(newStep) {
+  if (newStep === undefined || newStep === null || !state.character) return;
+  const wasIncomplete = state.character.tutorial_step < 5;
+  state.character.tutorial_step = newStep;
+  if (wasIncomplete && newStep >= 5) {
+    showToast('Tutorial complete! +150 gold.');
+  }
+  renderTutorialUI();
+}
+
+document.getElementById('tutorial-begin-btn').addEventListener('click', async () => {
+  try {
+    const data = await api('/character/tutorial/start', { method: 'POST' });
+    state.character = data.character;
+    updateTopBar();
+    renderTutorialUI();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+async function skipTutorial() {
+  try {
+    const data = await api('/character/tutorial/skip', { method: 'POST' });
+    state.character = data.character;
+    renderTutorialUI();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+document.getElementById('tutorial-skip-btn').addEventListener('click', skipTutorial);
+document.getElementById('tutorial-banner-skip-btn').addEventListener('click', skipTutorial);
+
 // ---------- Helpers ----------
 async function api(path, options = {}) {
   const res = await fetch(`/api${path}`, {
@@ -123,6 +189,7 @@ async function enterGame() {
   setupNav();
   connectSocket();
   showChatWidget();
+  renderTutorialUI();
 }
 
 function updateTopBar() {
@@ -174,6 +241,7 @@ async function loadCurrentRoom() {
   const data = await api('/world/room/current');
   state.currentRoomDetails = data;
   renderRoom(data);
+  applyTutorialStep(data.tutorialStep);
 }
 
 function renderRoom(data) {
@@ -333,6 +401,7 @@ async function movePlayer(direction) {
     state.currentRoomDetails = data;
     renderRoom(data);
     if (socket) socket.emit('room_changed');
+    applyTutorialStep(data.tutorialStep);
   } catch (err) {
     showToast(err.message, true);
   }
@@ -365,6 +434,7 @@ async function attackMonster(roomMonsterId) {
     state.character = data.character;
     updateTopBar();
     showCombatModal(data);
+    applyTutorialStep(data.character.tutorial_step);
     await loadCurrentRoom();
     await loadQuestTracker();
   } catch (err) {
@@ -725,6 +795,7 @@ function renderInventoryGrid() {
           const data2 = await api(endpoint, { method: 'POST', body: JSON.stringify({ inventoryId: item.inventory_id }) });
           state.character = data2.character;
           updateTopBar();
+          applyTutorialStep(data2.character.tutorial_step);
           loadInventory();
         } catch (err) {
           showToast(err.message, true);
@@ -1084,8 +1155,9 @@ async function loadQuestTracker() {
     if (!q.locked) {
       row.querySelector('button').addEventListener('click', async () => {
         try {
-          await api('/quests/accept', { method: 'POST', body: JSON.stringify({ questTemplateId: q.id }) });
+          const acceptData = await api('/quests/accept', { method: 'POST', body: JSON.stringify({ questTemplateId: q.id }) });
           showToast(`Accepted: ${q.name}`);
+          applyTutorialStep(acceptData.tutorialStep);
           loadQuestTracker();
         } catch (err) {
           showToast(err.message, true);

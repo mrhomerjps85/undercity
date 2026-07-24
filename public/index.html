@@ -295,7 +295,29 @@
 </div>
 <button id="chat-reopen-btn" class="chat-reopen-btn hidden">&#128172; Chat</button>
 
+<!-- ============ TUTORIAL ============ -->
+<div id="tutorial-welcome-modal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Welcome to Undercity</h2>
+    <p class="tutorial-welcome-text">
+      New to the streets? We'll walk you through moving around, fighting your first
+      monster, accepting a quest, and equipping gear - takes about a minute, and we'll
+      hand you a starter weapon and some gold for finishing.
+    </p>
+    <div class="tutorial-welcome-actions">
+      <button class="btn-ghost" id="tutorial-skip-btn">Skip Tutorial</button>
+      <button class="btn-primary" id="tutorial-begin-btn">Begin Tutorial</button>
+    </div>
+  </div>
+</div>
+
+<div id="tutorial-banner" class="tutorial-banner hidden">
+  <span id="tutorial-banner-text"></span>
+  <button class="btn-ghost" id="tutorial-banner-skip-btn">Skip Tutorial</button>
+</div>
+
 <div id="toast" class="toast hidden"></div>
+
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/app.js"></script>

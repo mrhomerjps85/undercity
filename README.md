@@ -172,6 +172,15 @@ Everyone shares the same world, monsters, and leaderboard.
   author credit (also linked in-app at the bottom of the sidebar). The
   `image` fields in `server/db/seed.js` are just string slugs, so swapping in
   different art later is a drop-in replacement.
+- **New player tutorial:** a guided, interactive walkthrough shown on first
+  login - move to a room, win a fight, accept a quest, equip gear - that
+  waits for each *real* action rather than just clicking through slides. A
+  pulsing highlight points at the exact UI element for the current step. A
+  starter weapon is granted when the tutorial begins (so there's something
+  to equip in the last step), and finishing for real grants a 150 gold
+  bonus; skipping (available at any point) does not. Progress is tracked
+  server-side on the character (`tutorial_step`, 0-5), so it survives
+  across devices and never re-shows once finished.
 - **Other players visible in your room:** if someone else is standing in the
   same room, you'll see their name and level.
 

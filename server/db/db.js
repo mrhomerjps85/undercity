@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS clans (
 
 -- Simplified stat model: a character only has Attack and HP as allocatable stats.
 -- Defense exists purely as a byproduct of equipped gear (see item_templates.bonus_defense).
+-- tutorial_step: 0 = not started, 1 = waiting to move, 2 = waiting to win a fight,
+-- 3 = waiting to accept a quest, 4 = waiting to equip an item, 5 = done (or skipped).
 CREATE TABLE IF NOT EXISTS characters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -45,6 +47,7 @@ CREATE TABLE IF NOT EXISTS characters (
   current_room_id INTEGER,
   clan_id INTEGER,
   avatar TEXT DEFAULT 'default',
+  tutorial_step INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (clan_id) REFERENCES clans(id)
@@ -268,5 +271,23 @@ CREATE TABLE IF NOT EXISTS world_boss_drops (
   FOREIGN KEY (item_template_id) REFERENCES item_templates(id)
 );
 `);
+
+// ---------------------------------------------------------------------
+// Lightweight migrations - "CREATE TABLE IF NOT EXISTS" only helps on a brand-new
+// database. On a database that already has a table (like a live production one),
+// adding a new column to that CREATE statement above does nothing - the table already
+// exists, so it's skipped entirely. This adds any missing columns without touching
+// existing rows, so shipping a schema change never requires wiping real player data.
+// ---------------------------------------------------------------------
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  const exists = columns.some((c) => c.name === column);
+  if (!exists) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`[migration] added column ${table}.${column}`);
+  }
+}
+
+ensureColumn('characters', 'tutorial_step', 'INTEGER DEFAULT 0');
 
 module.exports = db;
