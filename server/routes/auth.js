@@ -71,10 +71,24 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// news_posts.created_at uses sqlite's datetime('now') format ("YYYY-MM-DD HH:MM:SS"),
+// while last_news_read_at is set via toISOString() ("YYYY-MM-DDTHH:MM:SS.sssZ") - comparing
+// these as raw strings is unreliable (the space/T difference sorts unpredictably), so parse
+// both into real timestamps first.
+function parseTimestamp(str) {
+  if (!str) return 0;
+  if (str.includes('T')) return new Date(str).getTime();
+  return new Date(str.replace(' ', 'T') + 'Z').getTime();
+}
+
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, is_admin FROM users WHERE id = ?').get(req.session.userId);
+  const user = db.prepare('SELECT id, username, is_admin, last_news_read_at FROM users WHERE id = ?').get(req.session.userId);
   const character = db.prepare('SELECT * FROM characters WHERE user_id = ?').get(req.session.userId);
-  res.json({ user, character: character ? serializeCharacter(character) : null });
+
+  const latestPost = db.prepare('SELECT created_at FROM news_posts ORDER BY created_at DESC LIMIT 1').get();
+  const hasUnreadNews = !!latestPost && parseTimestamp(latestPost.created_at) > parseTimestamp(user.last_news_read_at);
+
+  res.json({ user, character: character ? serializeCharacter(character) : null, hasUnreadNews });
 });
 
 module.exports = router;

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   is_admin INTEGER DEFAULT 0,
   banned INTEGER DEFAULT 0,
+  last_news_read_at TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -224,6 +225,17 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Admin-posted announcements. author_username is stored as plain text (not a foreign key)
+-- so posts stay intact and correctly attributed even if that admin account is later deleted.
+CREATE TABLE IF NOT EXISTS news_posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'update', -- update, event, maintenance
+  author_username TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -293,5 +305,6 @@ function ensureColumn(table, column, definition) {
 ensureColumn('characters', 'tutorial_step', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'is_admin', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
+ensureColumn('users', 'last_news_read_at', 'TEXT');
 
 module.exports = db;

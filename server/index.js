@@ -17,6 +17,7 @@ const clanRoutes = require('./routes/clans');
 const questRoutes = require('./routes/quests');
 const worldBossRoutes = require('./routes/worldboss').router;
 const adminRoutes = require('./routes/admin');
+const newsRoutes = require('./routes/news');
 const socketLayer = require('./socket');
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/clans', clanRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/worldboss', worldBossRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/news', newsRoutes);
 
 const httpServer = http.createServer(app);
 socketLayer.init(httpServer, sessionMiddleware);

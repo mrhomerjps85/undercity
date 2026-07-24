@@ -107,6 +107,7 @@ async function boot(isRetry = false) {
     const data = await api('/auth/me');
     state.user = data.user;
     document.getElementById('admin-nav-item').classList.toggle('hidden', !data.user.is_admin);
+    document.getElementById('news-badge').classList.toggle('hidden', !data.hasUnreadNews);
     if (data.character) {
       state.character = data.character;
       await enterGame();
@@ -245,6 +246,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-clan') loadClanPanel();
       if (btn.dataset.panel === 'panel-leaderboard') loadLeaderboard();
       if (btn.dataset.panel === 'panel-admin') loadAdminPanel();
+      if (btn.dataset.panel === 'panel-news') loadNewsFeed();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -1423,6 +1425,81 @@ document.getElementById('admin-search-input').addEventListener('keydown', (e) =>
   if (e.key === 'Enter') {
     e.preventDefault();
     loadAdminPlayers(document.getElementById('admin-search-input').value.trim());
+  }
+});
+
+// ---------- News ----------
+async function loadNewsFeed() {
+  try {
+    const data = await api('/news');
+    renderNewsFeed(data.posts);
+
+    // Mark as read and clear the badge - only matters the first time this loads per session,
+    // but harmless to call every time the tab is opened.
+    await api('/news/mark-read', { method: 'POST' });
+    document.getElementById('news-badge').classList.add('hidden');
+
+    const form = document.getElementById('news-post-form');
+    form.classList.toggle('hidden', !(state.user && state.user.is_admin));
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderNewsFeed(posts) {
+  const feed = document.getElementById('news-feed');
+  feed.innerHTML = '';
+  if (posts.length === 0) {
+    feed.innerHTML = '<p class="empty-msg">Nothing posted yet.</p>';
+    return;
+  }
+  const isAdmin = state.user && state.user.is_admin;
+  posts.forEach(post => {
+    const card = document.createElement('div');
+    card.className = `news-post-card category-${post.category}`;
+    card.innerHTML = `
+      <div class="news-post-header">
+        <div>
+          <span class="news-category-tag category-${post.category}">${post.category}</span>
+          <span class="news-post-title">${post.title}</span>
+        </div>
+        ${isAdmin ? '<button class="btn-danger news-delete-btn">Delete</button>' : ''}
+      </div>
+      <div class="news-post-meta">Posted by ${post.author_username} — ${timeAgo(post.created_at)}</div>
+      <div class="news-post-body">${post.body}</div>
+    `;
+    if (isAdmin) {
+      card.querySelector('.news-delete-btn').addEventListener('click', async () => {
+        if (!window.confirm(`Delete "${post.title}"?`)) return;
+        try {
+          await api(`/news/${post.id}`, { method: 'DELETE' });
+          showToast('Post deleted.');
+          loadNewsFeed();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    feed.appendChild(card);
+  });
+}
+
+document.getElementById('news-post-btn').addEventListener('click', async () => {
+  const title = document.getElementById('news-title-input').value.trim();
+  const body = document.getElementById('news-body-input').value.trim();
+  const category = document.getElementById('news-category-input').value;
+  if (!title || !body) {
+    showToast('Title and body are both required.', true);
+    return;
+  }
+  try {
+    await api('/news', { method: 'POST', body: JSON.stringify({ title, body, category }) });
+    document.getElementById('news-title-input').value = '';
+    document.getElementById('news-body-input').value = '';
+    showToast('Posted!');
+    loadNewsFeed();
+  } catch (err) {
+    showToast(err.message, true);
   }
 });
 

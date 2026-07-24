@@ -990,6 +990,77 @@ button {
 }
 .btn-danger:hover { background: var(--blood); color: var(--ink); }
 
+/* ============ NEWS ============ */
+.nav-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blood-bright);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.news-post-form {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--gold);
+  padding: 16px;
+  margin-bottom: 20px;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.news-post-form input,
+.news-post-form select,
+.news-post-form textarea {
+  background: var(--bg-void);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  resize: vertical;
+}
+
+.news-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 700px;
+}
+.news-post-card {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink-dim);
+  padding: 16px 18px;
+}
+.news-post-card.category-update { border-left-color: var(--teal-bright); }
+.news-post-card.category-event { border-left-color: var(--gold-bright); }
+.news-post-card.category-maintenance { border-left-color: var(--blood-bright); }
+
+.news-post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.news-post-title { font-family: var(--font-heading); font-size: 16px; color: var(--ink); }
+.news-post-meta { font-size: 11px; color: var(--ink-dim); }
+.news-category-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  margin-right: 8px;
+}
+.news-category-tag.category-update { color: var(--teal-bright); border: 1px solid var(--teal); }
+.news-category-tag.category-event { color: var(--gold-bright); border: 1px solid var(--gold); }
+.news-category-tag.category-maintenance { color: var(--blood-bright); border: 1px solid var(--blood); }
+.news-post-body { font-size: 13px; color: var(--ink-dim); line-height: 1.6; white-space: pre-wrap; }
+.news-delete-btn { flex-shrink: 0; }
+
 /* ============ CLAN PANEL ============ */
 .clan-form {
   display: flex;

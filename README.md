@@ -172,6 +172,12 @@ Everyone shares the same world, monsters, and leaderboard.
   author credit (also linked in-app at the bottom of the sidebar). The
   `image` fields in `server/db/seed.js` are just string slugs, so swapping in
   different art later is a drop-in replacement.
+- **News:** a News tab everyone can see, with a small unread-indicator dot
+  that appears when there's a post since your last visit and clears the
+  moment you open the tab. Admins get a posting form right on the same tab
+  (title, body, and a color-coded category - Update/Event/Maintenance) plus
+  a delete button on each post. One-way only by design - no comments or
+  reactions, just admin-to-player announcements.
 - **Admin panel:** an Admin tab (visible only to accounts with `is_admin`)
   with live server stats (accounts, characters, level spread, total gold,
   world boss status) and a searchable player list. From there you can ban

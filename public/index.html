@@ -87,6 +87,7 @@
       <button class="nav-item" data-panel="panel-shop">Shop</button>
       <button class="nav-item" data-panel="panel-clan">Clan</button>
       <button class="nav-item" data-panel="panel-leaderboard">Rankings</button>
+      <button class="nav-item" data-panel="panel-news">News<span class="nav-badge hidden" id="news-badge"></span></button>
       <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
@@ -265,6 +266,25 @@
     </section>
 
     <!-- ADMIN PANEL -->
+    <!-- NEWS PANEL -->
+    <section class="panel hidden" id="panel-news">
+      <h2 class="panel-title">News</h2>
+
+      <div class="news-post-form hidden" id="news-post-form">
+        <h3 class="subheading">Post an Update</h3>
+        <input type="text" id="news-title-input" placeholder="Title" maxlength="100" />
+        <select id="news-category-input">
+          <option value="update">Update</option>
+          <option value="event">Event</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+        <textarea id="news-body-input" placeholder="What's new?" rows="4"></textarea>
+        <button class="btn-primary" id="news-post-btn">Post</button>
+      </div>
+
+      <div class="news-feed" id="news-feed"></div>
+    </section>
+
     <section class="panel hidden" id="panel-admin">
       <h2 class="panel-title">Admin</h2>
 
