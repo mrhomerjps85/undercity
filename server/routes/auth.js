@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db/db');
+const { serializeCharacter } = require('./character');
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.get('/me', (req, res) => {
   }
   const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.session.userId);
   const character = db.prepare('SELECT * FROM characters WHERE user_id = ?').get(req.session.userId);
-  res.json({ user, character: character || null });
+  res.json({ user, character: character ? serializeCharacter(character) : null });
 });
 
 module.exports = router;
