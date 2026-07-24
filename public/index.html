@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>UNDERCITY &mdash; Browser MMO</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0b0a0d" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Undercity" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<button id="install-app-btn" class="install-app-btn hidden">&#8681; Install App</button>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen" class="screen">
+  <div class="auth-card">
+    <h1 class="logo">UNDER<span>CITY</span></h1>
+    <p class="tagline">Claw your way to the top of the underworld.</p>
+
+    <div class="auth-tabs">
+      <button id="tab-login" class="auth-tab active">Log In</button>
+      <button id="tab-register" class="auth-tab">Register</button>
+    </div>
+
+    <form id="login-form" class="auth-form">
+      <input type="text" id="login-username" placeholder="Username" required autocomplete="username" />
+      <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password" />
+      <button type="submit" class="btn-primary">Enter the City</button>
+      <p class="error-msg" id="login-error"></p>
+    </form>
+
+    <form id="register-form" class="auth-form hidden">
+      <input type="text" id="register-username" placeholder="Choose a username" required />
+      <input type="password" id="register-password" placeholder="Choose a password (6+ chars)" required />
+      <button type="submit" class="btn-primary">Create Account</button>
+      <p class="error-msg" id="register-error"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ CHARACTER CREATION ============ -->
+<div id="create-char-screen" class="screen hidden">
+  <div class="auth-card">
+    <h1 class="logo">NEW <span>ARRIVAL</span></h1>
+    <p class="tagline">Every legend starts as a nobody. Name yours.</p>
+    <form id="create-char-form" class="auth-form">
+      <input type="text" id="character-name" placeholder="Character name" required />
+      <button type="submit" class="btn-primary">Step Into Undercity</button>
+      <p class="error-msg" id="create-char-error"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MAIN GAME SCREEN ============ -->
+<div id="game-screen" class="screen hidden">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-logo">UNDER<span>CITY</span></div>
+    <div class="topbar-stats">
+      <div class="stat-pill" id="pill-name">-</div>
+      <div class="stat-pill dropdown-trigger" id="level-dropdown-trigger">
+        Lvl <span id="pill-level">-</span>
+        <div class="stat-dropdown hidden" id="level-dropdown">
+          <div class="dropdown-row"><span>Attack</span><span id="dropdown-attack">-</span></div>
+          <div class="dropdown-row"><span>Max HP</span><span id="dropdown-maxhp">-</span></div>
+          <div class="dropdown-row"><span>Current HP</span><span id="dropdown-currenthp">-</span></div>
+        </div>
+      </div>
+      <div class="stat-pill gold">Gold <span id="pill-gold">-</span></div>
+    </div>
+    <div class="topbar-bars">
+      <div class="bar-wrap">
+        <span class="bar-label">EXP</span>
+        <div class="bar exp-bar"><div class="bar-fill" id="exp-fill"></div></div>
+        <span class="bar-text" id="exp-text">-/-</span>
+      </div>
+    </div>
+    <button id="logout-btn" class="btn-ghost">Logout</button>
+  </header>
+
+  <div class="game-body">
+
+    <!-- LEFT NAV -->
+    <nav class="sidenav">
+      <button class="nav-item active" data-panel="panel-world">My World</button>
+      <button class="nav-item" data-panel="panel-travel">Travel</button>
+      <button class="nav-item" data-panel="panel-character">Character</button>
+      <button class="nav-item" data-panel="panel-inventory">Inventory</button>
+      <button class="nav-item" data-panel="panel-shop">Shop</button>
+      <button class="nav-item" data-panel="panel-clan">Clan</button>
+      <button class="nav-item" data-panel="panel-leaderboard">Rankings</button>
+      <div class="sidenav-art">
+        <div class="mask-icon">&#9760;</div>
+        <div class="sidenav-caption">UNDERCITY</div>
+        <a class="credits-link" href="https://game-icons.net" target="_blank" rel="noopener">Icons by game-icons.net (CC BY 3.0)</a>
+      </div>
+    </nav>
+
+    <!-- CENTER: WORLD PANEL -->
+    <main class="panel" id="panel-world">
+      <div class="world-columns">
+
+        <!-- Zone map -->
+        <section class="map-card">
+          <h2 class="panel-title" id="zone-name">- Zone -</h2>
+          <div class="minimap" id="minimap"></div>
+          <div class="dpad">
+            <button class="dpad-btn dpad-n" data-dir="north">&#9650;</button>
+            <div class="dpad-mid">
+              <button class="dpad-btn dpad-w" data-dir="west">&#9664;</button>
+              <button class="dpad-btn dpad-s" data-dir="south">&#9660;</button>
+              <button class="dpad-btn dpad-e" data-dir="east">&#9654;</button>
+            </div>
+          </div>
+          <p class="hint">Use the arrows or W/A/S/D to move between rooms.</p>
+        </section>
+
+        <!-- Room details -->
+        <section class="room-card">
+          <h2 class="panel-title" id="room-name">- Room -</h2>
+          <div class="room-image" id="room-image"></div>
+
+          <div class="room-players" id="room-players"></div>
+
+          <div class="worldboss-card hidden" id="worldboss-card">
+            <div class="worldboss-header">
+              <img class="worldboss-icon" id="worldboss-icon" src="" alt="" />
+              <div>
+                <div class="worldboss-name" id="worldboss-name">-</div>
+                <div class="worldboss-hp-text" id="worldboss-hp-text">-/-</div>
+              </div>
+            </div>
+            <div class="bar worldboss-bar"><div class="bar-fill" id="worldboss-fill"></div></div>
+            <div class="worldboss-footer">
+              <span class="worldboss-status" id="worldboss-status"></span>
+              <button class="btn-attack" id="worldboss-attack-btn">Attack</button>
+            </div>
+          </div>
+
+          <h3 class="subheading">Monsters Here</h3>
+          <div class="auto-attack-bar hidden" id="auto-attack-bar">
+            <span id="auto-attack-status">Auto-attacking...</span>
+            <button class="btn-ghost" id="auto-attack-stop">Stop</button>
+          </div>
+          <div class="monster-list" id="monster-list">
+            <p class="empty-msg">Nothing here. Move on.</p>
+          </div>
+          <p class="respawn-note" id="respawn-note"></p>
+        </section>
+
+        <!-- Quest tracker -->
+        <section class="quest-card">
+          <h2 class="panel-title">Quests</h2>
+          <div class="quest-subtabs">
+            <button class="quest-subtab active" data-questview="active">Active</button>
+            <button class="quest-subtab" data-questview="available">Available</button>
+          </div>
+          <div class="quest-list" id="world-active-quest-list"></div>
+          <div class="quest-list hidden" id="world-available-quest-list"></div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- TRAVEL PANEL -->
+    <section class="panel hidden" id="panel-travel">
+      <h2 class="panel-title">Travel</h2>
+      <div class="travel-grid" id="travel-grid"></div>
+    </section>
+
+    <!-- CHARACTER PANEL -->
+    <section class="panel hidden" id="panel-character">
+      <h2 class="panel-title">Character Sheet</h2>
+      <div class="char-sheet" id="char-sheet"></div>
+      <h3 class="subheading">Recent Battles</h3>
+      <div class="combat-history-list" id="combat-history-list"></div>
+    </section>
+
+    <!-- INVENTORY PANEL -->
+    <section class="panel hidden" id="panel-inventory">
+      <h2 class="panel-title">Inventory &amp; Equipment</h2>
+      <div class="equipment-layout">
+        <div class="doll-column">
+          <div class="paperdoll" id="paperdoll">
+            <svg class="doll-silhouette" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="100" cy="42" r="28" />
+              <path d="M62,78 Q100,66 138,78 L148,215 Q100,232 52,215 Z" />
+              <rect x="26" y="86" width="24" height="115" rx="11" />
+              <rect x="150" y="86" width="24" height="115" rx="11" />
+              <rect x="64" y="222" width="30" height="120" rx="8" />
+              <rect x="106" y="222" width="30" height="120" rx="8" />
+            </svg>
+            <button class="doll-slot" data-slot="head" style="top:5%; left:50%;"><span class="slot-label">Head</span></button>
+            <button class="doll-slot" data-slot="neck" style="top:21%; left:50%;"><span class="slot-label">Neck</span></button>
+            <button class="doll-slot" data-slot="chest" style="top:37%; left:50%;"><span class="slot-label">Chest</span></button>
+            <button class="doll-slot" data-slot="hands" style="top:40%; left:10%;"><span class="slot-label">Hands</span></button>
+            <button class="doll-slot" data-slot="weapon" style="top:40%; left:90%;"><span class="slot-label">Weapon</span></button>
+            <button class="doll-slot" data-slot="shield" style="top:58%; left:10%;"><span class="slot-label">Shield</span></button>
+            <button class="doll-slot" data-slot="legs" style="top:64%; left:50%;"><span class="slot-label">Legs</span></button>
+            <button class="doll-slot" data-slot="boots" style="top:90%; left:50%;"><span class="slot-label">Boots</span></button>
+          </div>
+          <div class="doll-stats" id="doll-stats"></div>
+          <div class="set-info" id="set-info"></div>
+          <div class="item-tooltip hidden" id="item-tooltip"></div>
+        </div>
+        <div class="inventory-column">
+          <div class="inventory-toolbar">
+            <div class="shop-subtabs" id="inventory-subtabs">
+              <button class="shop-subtab active" data-slot="all">All</button>
+              <button class="shop-subtab" data-slot="weapon">Weapon</button>
+              <button class="shop-subtab" data-slot="chest">Chest</button>
+              <button class="shop-subtab" data-slot="head">Head</button>
+              <button class="shop-subtab" data-slot="boots">Boots</button>
+              <button class="shop-subtab" data-slot="hands">Hands</button>
+              <button class="shop-subtab" data-slot="legs">Legs</button>
+              <button class="shop-subtab" data-slot="shield">Shield</button>
+              <button class="shop-subtab" data-slot="neck">Neck</button>
+              <button class="shop-subtab" data-slot="quest">Quest</button>
+            </div>
+            <div class="inventory-controls">
+              <select id="inventory-sort">
+                <option value="slot">Sort: Slot</option>
+                <option value="rarity">Sort: Rarity</option>
+                <option value="level">Sort: Level</option>
+                <option value="name">Sort: Name</option>
+              </select>
+              <button class="btn-ghost" id="sell-all-common-btn">Sell All Common</button>
+            </div>
+          </div>
+          <h3 class="subheading">Items</h3>
+          <div class="inventory-grid" id="inventory-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP PANEL -->
+    <section class="panel hidden" id="panel-shop">
+      <h2 class="panel-title">Black Market</h2>
+      <div class="shop-subtabs" id="shop-subtabs">
+        <button class="shop-subtab active" data-slot="all">All</button>
+        <button class="shop-subtab" data-slot="weapon">Weapon</button>
+        <button class="shop-subtab" data-slot="chest">Chest</button>
+        <button class="shop-subtab" data-slot="head">Head</button>
+        <button class="shop-subtab" data-slot="boots">Boots</button>
+        <button class="shop-subtab" data-slot="hands">Hands</button>
+        <button class="shop-subtab" data-slot="legs">Legs</button>
+        <button class="shop-subtab" data-slot="shield">Shield</button>
+        <button class="shop-subtab" data-slot="neck">Neck</button>
+      </div>
+      <div class="shop-grid" id="shop-grid"></div>
+    </section>
+
+    <!-- CLAN PANEL -->
+    <section class="panel hidden" id="panel-clan">
+      <h2 class="panel-title">Clans</h2>
+      <div id="clan-content"></div>
+    </section>
+
+    <!-- LEADERBOARD PANEL -->
+    <section class="panel hidden" id="panel-leaderboard">
+      <h2 class="panel-title">City Rankings</h2>
+      <table class="leaderboard-table" id="leaderboard-table">
+        <thead><tr><th>#</th><th>Name</th><th>Level</th><th>EXP</th><th>Clan</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============ COMBAT MODAL ============ -->
+<div id="combat-modal" class="modal hidden">
+  <div class="modal-card">
+    <h2 id="combat-title">Combat</h2>
+    <div class="combat-log" id="combat-log"></div>
+    <div class="combat-result" id="combat-result"></div>
+    <button id="combat-close" class="btn-primary">Return to Undercity</button>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<!-- ============ CHAT WIDGET ============ -->
+<div id="chat-widget" class="chat-widget hidden">
+  <div class="chat-header" id="chat-header">
+    <div class="chat-tabs">
+      <button class="chat-tab active" data-channel="global">Global</button>
+      <button class="chat-tab" data-channel="clan">Clan</button>
+    </div>
+    <button class="chat-collapse-btn" id="chat-collapse-btn">&#8211;</button>
+  </div>
+  <div class="chat-log" id="chat-log-global"></div>
+  <div class="chat-log hidden" id="chat-log-clan"></div>
+  <form class="chat-input-row" id="chat-form">
+    <input type="text" id="chat-input" placeholder="Say something..." maxlength="300" autocomplete="off" />
+    <button type="submit" class="btn-primary">Send</button>
+  </form>
+</div>
+<button id="chat-reopen-btn" class="chat-reopen-btn hidden">&#128172; Chat</button>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
