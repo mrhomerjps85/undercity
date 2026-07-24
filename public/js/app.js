@@ -102,7 +102,7 @@ function showScreen(id) {
 }
 
 // ---------- Boot ----------
-async function boot() {
+async function boot(isRetry = false) {
   try {
     const data = await api('/auth/me');
     state.user = data.user;
@@ -112,7 +112,15 @@ async function boot() {
     } else {
       showScreen('create-char-screen');
     }
-  } catch {
+  } catch (err) {
+    // A fresh login/register can occasionally be followed by this check before the new
+    // session has fully settled server-side. Retry once, briefly, before assuming the
+    // person really isn't logged in - avoids bouncing someone straight back to the
+    // login screen right after they just successfully signed in.
+    if (!isRetry) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return boot(true);
+    }
     showScreen('auth-screen');
   }
 }

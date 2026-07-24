@@ -26,7 +26,13 @@ router.post('/register', async (req, res) => {
   const result = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username, passwordHash);
 
   req.session.userId = result.lastInsertRowid;
-  res.json({ success: true, userId: result.lastInsertRowid });
+  req.session.save((err) => {
+    if (err) {
+      console.error('[auth] Failed to save session after register:', err);
+      return res.status(500).json({ error: 'Could not create your session. Please try again.' });
+    }
+    res.json({ success: true, userId: result.lastInsertRowid });
+  });
 });
 
 router.post('/login', async (req, res) => {
@@ -46,7 +52,13 @@ router.post('/login', async (req, res) => {
   }
 
   req.session.userId = user.id;
-  res.json({ success: true, userId: user.id });
+  req.session.save((err) => {
+    if (err) {
+      console.error('[auth] Failed to save session after login:', err);
+      return res.status(500).json({ error: 'Could not create your session. Please try again.' });
+    }
+    res.json({ success: true, userId: user.id });
+  });
 });
 
 router.post('/logout', (req, res) => {
