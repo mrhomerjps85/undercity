@@ -221,32 +221,63 @@ If you deploy behind a reverse proxy (nginx, etc.), make sure WebSocket
 upgrade headers are passed through, or Socket.IO will silently fall back to
 HTTP long-polling.
 
-## Installing as an app (PWA)
+## Deploying for real (multiple concurrent players)
 
-Undercity is installable as a home-screen/desktop app. On Chrome/Edge/Android,
-an "Install App" button appears in the top-right corner once the browser
-decides the page is installable; tapping it triggers the native install
-prompt. On iOS Safari, there's no automatic prompt (Apple doesn't support
-`beforeinstallprompt`) - use Share → "Add to Home Screen" instead; the meta
-tags in `index.html` are already set up so it opens full-screen like a native
-app from there.
+Running this locally is fine for one person, but for a real shared world you need a host
+that gives you a **persistent Node.js process** (for Socket.IO), **persistent disk
+storage** (for the SQLite file), and proper **WebSocket passthrough**. That rules out most
+serverless/static hosts (Vercel, Cloudflare Pages, etc.) - this needs a "real server," even
+a small one.
 
-Technical notes if you're extending this:
-- `public/manifest.json` defines the app name, icons, and colors.
-- `public/sw.js` is a minimal service worker whose only real job is
-  satisfying installability requirements. It caches the static shell
-  (HTML/CSS/JS/icons) but explicitly **never** caches anything under
-  `/api/` or `/socket.io/` - this is a live multiplayer game, so game state
-  and the socket connection always need the real server.
-- **Installability requires HTTPS in production** (browsers exempt
-  `localhost` for local testing, so it works out of the box in dev). If you
-  deploy this somewhere, you'll need a TLS certificate for the install
-  prompt to appear at all.
-- Icons live in `public/icons/` (192/512px regular + maskable variants) and
-  were generated from a single master SVG using `sharp` as a one-time build
-  step - `sharp` is *not* a runtime dependency, so it's not in
-  `package.json`. If you want to regenerate them with a different design,
-  reinstall `sharp` temporarily, rasterize your SVG, then uninstall it again.
+Two environment variables control where production data lives, so it survives redeploys:
+
+- `DB_PATH` - full path to the SQLite file (e.g. `/var/data/game.db`). Without this, the
+  database lives next to `server/db/db.js`, which is fine locally but gets wiped on most
+  hosts' redeploys since only an explicitly-attached disk persists.
+- `SESSIONS_PATH` - folder for session files (e.g. `/var/data/sessions`). Sessions are
+  stored as files (via `session-file-store`), not in memory, specifically so a server
+  restart or redeploy doesn't log every player out - only losing the disk they're on would.
+- `SESSION_SECRET` - any random string; secures session cookies. Set this in production
+  instead of relying on the built-in dev default.
+
+Point both `DB_PATH` and `SESSIONS_PATH` at the same persistent disk.
+
+### Recommended host: Render (paid Starter plan + a persistent disk)
+
+Render's free tier does **not** support attaching a
+persistent disk, so it's not viable for a real shared database. The paid Starter plan
+(~$7/month at the time of writing - check Render's current pricing) does:
+
+1. In your Render dashboard, open your Web Service → **Settings** → upgrade the instance
+   type from Free to Starter.
+2. Still in Settings, find **Disks** → **Add Disk**. Give it a name, a mount path like
+   `/var/data`, and a small size (1GB is enormous overkill for a SQLite file like this).
+3. Under **Environment**, add:
+   - `DB_PATH` = `/var/data/game.db`
+   - `SESSIONS_PATH` = `/var/data/sessions`
+   - `SESSION_SECRET` = (generate any random string)
+4. Redeploy. From now on, your data lives on that disk and survives restarts/redeploys.
+
+(Railway and Fly.io both work too and support the same persistent-volume idea - Fly.io no
+longer has a free tier as of mid-2026, and requires a Dockerfile, so Render or Railway are
+the simpler starting points if you haven't containerized before.)
+
+### The ongoing workflow for shipping new features
+
+Once deployed this way, adding new features going forward is just:
+
+1. Get the updated files (same as before - copy them into your local project folder).
+2. In your terminal, inside the project folder:
+   ```cmd
+   git add .
+   git commit -m "describe what changed"
+   git push
+   ```
+3. Render (or Railway) is watching your GitHub repo and automatically redeploys on every
+   push - no manual redeploy step needed.
+4. If a change includes a schema update, you'll be told to run `npm run reset-db` — but
+   running that against your **production** `DB_PATH` wipes every real player's character,
+   so treat it as a last resort in production, not a routine step like in local dev.
 
 ## Roadmap / what to build next
 
@@ -268,7 +299,6 @@ yet. Natural next additions, roughly in order of how easy they'd be to bolt on:
 5. ~~Auto-attacker / idle combat~~ — done, see below.
 6. ~~Artwork~~ — done, see below.
 7. ~~World bosses~~ — done, see below.
-8. ~~Mobile installability (PWA)~~ — done, see below.
 
 ## Swapping the database (if you're on an older Node version)
 

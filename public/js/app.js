@@ -1,35 +1,6 @@
 // app.js - Frontend logic for Undercity (Outwar-style clone)
 // Handles auth, character creation, world navigation, combat, inventory, shop, clans, leaderboard.
 
-// ---------- PWA: service worker + install prompt ----------
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('Service worker registration failed:', err);
-    });
-  });
-}
-
-let deferredInstallPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); // stop the browser's automatic mini-infobar; we show our own button instead
-  deferredInstallPrompt = e;
-  document.getElementById('install-app-btn').classList.remove('hidden');
-});
-
-document.getElementById('install-app-btn').addEventListener('click', async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  document.getElementById('install-app-btn').classList.add('hidden');
-});
-
-window.addEventListener('appinstalled', () => {
-  document.getElementById('install-app-btn').classList.add('hidden');
-  deferredInstallPrompt = null;
-});
-
 const state = {
   user: null,
   character: null,

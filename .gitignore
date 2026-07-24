@@ -1,5 +1,6 @@
 node_modules/
 server/db/game.db
+.sessions/
 .env
 npm-debug.log
 .DS_Store

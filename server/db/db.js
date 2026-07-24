@@ -3,7 +3,12 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'game.db');
+// In production, set DB_PATH to a file on your host's persistent disk (e.g. Render's
+// persistent disk mounts at a path you choose, like /var/data - set DB_PATH=/var/data/game.db).
+// Without it, this defaults to living next to this file, which is fine for local dev but
+// will NOT survive a redeploy on most hosts (their app filesystem is ephemeral, only the
+// disk you explicitly attach persists).
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'game.db');
 
 // For a fresh dev setup, run `npm run reset-db` to wipe and reseed the world.
 const db = new DatabaseSync(DB_PATH);

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "seed": "node server/db/seed.js",
-    "reset-db": "rm -f server/db/game.db && node server/db/seed.js"
+    "reset-db": "node -e \"require('fs').rmSync(process.env.DB_PATH || require('path').join(__dirname,'server/db/game.db'), {force:true})\" && node server/db/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +15,7 @@
     "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "session-file-store": "^1.5.0",
     "socket.io": "^4.8.3",
     "uuid": "^14.0.1"
   }

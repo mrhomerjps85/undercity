@@ -308,22 +308,6 @@ button {
 }
 .credits-link:hover { color: var(--ink-dim); }
 
-.install-app-btn {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  background: var(--bg-panel);
-  border: 1px solid var(--gold);
-  color: var(--gold-bright);
-  padding: 8px 16px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  z-index: 300;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-}
-.install-app-btn:hover { background: var(--bg-panel-raised); }
-
 .panel {
   flex: 1;
   padding: 24px 28px;
