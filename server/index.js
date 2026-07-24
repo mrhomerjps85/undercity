@@ -16,6 +16,7 @@ const leaderboardRoutes = require('./routes/leaderboard');
 const clanRoutes = require('./routes/clans');
 const questRoutes = require('./routes/quests');
 const worldBossRoutes = require('./routes/worldboss').router;
+const adminRoutes = require('./routes/admin');
 const socketLayer = require('./socket');
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/clans', clanRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/worldboss', worldBossRoutes);
+app.use('/api/admin', adminRoutes);
 
 const httpServer = http.createServer(app);
 socketLayer.init(httpServer, sessionMiddleware);

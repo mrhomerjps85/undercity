@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server/index.js",
     "seed": "node server/db/seed.js",
-    "reset-db": "node -e \"require('fs').rmSync(process.env.DB_PATH || require('path').join(__dirname,'server/db/game.db'), {force:true})\" && node server/db/seed.js"
+    "reset-db": "node -e \"require('fs').rmSync(process.env.DB_PATH || require('path').join(__dirname,'server/db/game.db'), {force:true})\" && node server/db/seed.js",
+    "make-admin": "node server/scripts/make-admin.js"
   },
   "keywords": [],
   "author": "",

@@ -172,6 +172,17 @@ Everyone shares the same world, monsters, and leaderboard.
   author credit (also linked in-app at the bottom of the sidebar). The
   `image` fields in `server/db/seed.js` are just string slugs, so swapping in
   different art later is a drop-in replacement.
+- **Admin panel:** an Admin tab (visible only to accounts with `is_admin`)
+  with live server stats (accounts, characters, level spread, total gold,
+  world boss status) and a searchable player list. From there you can ban
+  (blocks login immediately **and** cuts off any currently-active session,
+  not just future ones), unban, or permanently delete an account - deleting
+  cleans up their inventory, quests, and combat history with no orphaned
+  rows, though chat messages are kept since they already store the sender's
+  name as plain text and don't need the account to still exist. There's no
+  UI to grant the *first* admin (nothing to click before one exists) - run
+  `npm run make-admin <username>` once, locally or via Render's Shell tab
+  against production, to bootstrap it.
 - **New player tutorial:** a guided, interactive walkthrough shown on first
   login - move to a room, win a fight, accept a quest, equip gear - that
   waits for each *real* action rather than just clicking through slides. A

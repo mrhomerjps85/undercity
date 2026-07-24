@@ -106,6 +106,7 @@ async function boot(isRetry = false) {
   try {
     const data = await api('/auth/me');
     state.user = data.user;
+    document.getElementById('admin-nav-item').classList.toggle('hidden', !data.user.is_admin);
     if (data.character) {
       state.character = data.character;
       await enterGame();
@@ -243,6 +244,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-shop') loadShop();
       if (btn.dataset.panel === 'panel-clan') loadClanPanel();
       if (btn.dataset.panel === 'panel-leaderboard') loadLeaderboard();
+      if (btn.dataset.panel === 'panel-admin') loadAdminPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -1329,6 +1331,100 @@ document.getElementById('chat-reopen-btn').addEventListener('click', () => {
 function showChatWidget() {
   document.getElementById('chat-widget').classList.remove('hidden');
 }
+
+// ---------- Admin ----------
+async function loadAdminPanel() {
+  await Promise.all([loadAdminStats(), loadAdminPlayers()]);
+}
+
+async function loadAdminStats() {
+  try {
+    const s = await api('/admin/stats');
+    const el = document.getElementById('admin-stats');
+    el.innerHTML = `
+      <div class="stat-box"><div class="label">Total Accounts</div><div class="value">${s.totalUsers}</div></div>
+      <div class="stat-box"><div class="label">Characters</div><div class="value">${s.totalCharacters}</div></div>
+      <div class="stat-box"><div class="label">Banned</div><div class="value">${s.bannedCount}</div></div>
+      <div class="stat-box"><div class="label">Avg Level</div><div class="value">${s.avgLevel}</div></div>
+      <div class="stat-box"><div class="label">Max Level</div><div class="value">${s.maxLevel}</div></div>
+      <div class="stat-box"><div class="label">Total Gold</div><div class="value">${s.totalGold.toLocaleString()}</div></div>
+    `;
+    if (s.worldBosses && s.worldBosses.length) {
+      const bossBox = document.createElement('div');
+      bossBox.className = 'stat-box';
+      bossBox.style.gridColumn = '1 / -1';
+      bossBox.innerHTML = `<div class="label">World Bosses</div><div class="value" style="font-size:14px;">` +
+        s.worldBosses.map(b => `${b.name}: ${b.is_alive ? `${b.current_hp}/${b.max_hp} HP` : 'defeated, respawning'}`).join(' | ') +
+        `</div>`;
+      el.appendChild(bossBox);
+    }
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function loadAdminPlayers(search) {
+  try {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    const data = await api(`/admin/players${query}`);
+    const list = document.getElementById('admin-player-list');
+    list.innerHTML = '';
+    if (data.players.length === 0) {
+      list.innerHTML = '<p class="empty-msg">No players found.</p>';
+      return;
+    }
+    data.players.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'admin-player-row' + (p.banned ? ' banned' : '');
+      row.innerHTML = `
+        <div class="admin-player-info">
+          <span class="apn">${p.username}${p.is_admin ? '<span class="admin-tag admin">Admin</span>' : ''}${p.banned ? '<span class="admin-tag banned">Banned</span>' : ''}</span>
+          <span class="apm">${p.character_name ? `${p.character_name} — Lv.${p.level}, ${p.gold}g` : 'No character yet'} — joined ${p.account_created_at}</span>
+        </div>
+        <div class="admin-player-actions">
+          ${p.is_admin ? '' : `<button class="btn-ghost admin-ban-btn">${p.banned ? 'Unban' : 'Ban'}</button>
+          <button class="btn-danger admin-delete-btn">Delete</button>`}
+        </div>
+      `;
+      if (!p.is_admin) {
+        row.querySelector('.admin-ban-btn').addEventListener('click', async () => {
+          const action = p.banned ? 'unban' : 'ban';
+          if (!window.confirm(`${action === 'ban' ? 'Ban' : 'Unban'} ${p.username}?`)) return;
+          try {
+            await api(`/admin/players/${p.user_id}/${action}`, { method: 'POST' });
+            showToast(`${p.username} ${action === 'ban' ? 'banned' : 'unbanned'}.`);
+            loadAdminPlayers(document.getElementById('admin-search-input').value.trim());
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        });
+        row.querySelector('.admin-delete-btn').addEventListener('click', async () => {
+          if (!window.confirm(`Permanently delete ${p.username}'s account and character? This cannot be undone.`)) return;
+          try {
+            await api(`/admin/players/${p.user_id}`, { method: 'DELETE' });
+            showToast(`Deleted ${p.username}.`);
+            loadAdminPlayers(document.getElementById('admin-search-input').value.trim());
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        });
+      }
+      list.appendChild(row);
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+document.getElementById('admin-search-btn').addEventListener('click', () => {
+  loadAdminPlayers(document.getElementById('admin-search-input').value.trim());
+});
+document.getElementById('admin-search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    loadAdminPlayers(document.getElementById('admin-search-input').value.trim());
+  }
+});
 
 // ---------- Go ----------
 boot();

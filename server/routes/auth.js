@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db/db');
 const { serializeCharacter } = require('./character');
+const { requireAuth } = require('../middleware');
 
 const router = express.Router();
 
@@ -50,6 +51,9 @@ router.post('/login', async (req, res) => {
   if (!valid) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
+  if (user.banned) {
+    return res.status(403).json({ error: 'This account has been banned.' });
+  }
 
   req.session.userId = user.id;
   req.session.save((err) => {
@@ -67,11 +71,8 @@ router.post('/logout', (req, res) => {
   });
 });
 
-router.get('/me', (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Not logged in.' });
-  }
-  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(req.session.userId);
+router.get('/me', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT id, username, is_admin FROM users WHERE id = ?').get(req.session.userId);
   const character = db.prepare('SELECT * FROM characters WHERE user_id = ?').get(req.session.userId);
   res.json({ user, character: character ? serializeCharacter(character) : null });
 });

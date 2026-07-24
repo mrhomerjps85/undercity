@@ -927,6 +927,69 @@ button {
 }
 .leaderboard-table tr:hover td { background: var(--bg-panel-raised); }
 
+/* ============ ADMIN ============ */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  max-width: 900px;
+  margin-bottom: 24px;
+}
+.admin-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-width: 600px;
+}
+.admin-search-row input {
+  flex: 1;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+.admin-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 900px;
+}
+.admin-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  padding: 10px 16px;
+  font-size: 13px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-player-row.banned { border-color: var(--blood); opacity: 0.7; }
+.admin-player-info { display: flex; flex-direction: column; gap: 2px; }
+.admin-player-info .apn { font-weight: 600; }
+.admin-player-info .apm { font-size: 11px; color: var(--ink-dim); }
+.admin-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  margin-left: 6px;
+}
+.admin-tag.admin { color: var(--gold-bright); border: 1px solid var(--gold); }
+.admin-tag.banned { color: var(--blood-bright); border: 1px solid var(--blood); }
+.admin-player-actions { display: flex; gap: 8px; }
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--blood);
+  color: var(--blood-bright);
+  padding: 7px 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.btn-danger:hover { background: var(--blood); color: var(--ink); }
+
 /* ============ CLAN PANEL ============ */
 .clan-form {
   display: flex;

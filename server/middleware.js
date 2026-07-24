@@ -4,6 +4,17 @@ function requireAuth(req, res, next) {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'You must be logged in.' });
   }
+  // Re-checked on every request (not just at login) so a ban takes effect immediately
+  // even for someone already mid-session, instead of waiting for their next login.
+  const user = db.prepare('SELECT banned FROM users WHERE id = ?').get(req.session.userId);
+  if (!user) {
+    req.session.destroy(() => {});
+    return res.status(401).json({ error: 'You must be logged in.' });
+  }
+  if (user.banned) {
+    req.session.destroy(() => {});
+    return res.status(403).json({ error: 'This account has been banned.' });
+  }
   next();
 }
 

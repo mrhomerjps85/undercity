@@ -87,6 +87,7 @@
       <button class="nav-item" data-panel="panel-shop">Shop</button>
       <button class="nav-item" data-panel="panel-clan">Clan</button>
       <button class="nav-item" data-panel="panel-leaderboard">Rankings</button>
+      <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
         <div class="sidenav-caption">UNDERCITY</div>
@@ -261,6 +262,20 @@
         <thead><tr><th>#</th><th>Name</th><th>Level</th><th>EXP</th><th>Clan</th></tr></thead>
         <tbody></tbody>
       </table>
+    </section>
+
+    <!-- ADMIN PANEL -->
+    <section class="panel hidden" id="panel-admin">
+      <h2 class="panel-title">Admin</h2>
+
+      <div class="admin-stats" id="admin-stats"></div>
+
+      <h3 class="subheading">Players</h3>
+      <div class="admin-search-row">
+        <input type="text" id="admin-search-input" placeholder="Search by username or character name..." />
+        <button class="btn-ghost" id="admin-search-btn">Search</button>
+      </div>
+      <div class="admin-player-list" id="admin-player-list"></div>
     </section>
 
   </div>
