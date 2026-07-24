@@ -140,4 +140,45 @@ router.post('/tutorial/skip', requireAuth, requireCharacter, (req, res) => {
   res.json({ character: serializeCharacter(updated) });
 });
 
+// Public profile lookup by character name - what any logged-in player sees when they
+// click another player's name in chat, room presence, or the leaderboard. Deliberately
+// excludes gold and unequipped inventory (that's "wallet contents," not a profile) -
+// only equipped gear, derived stats, active sets, and clan are shown.
+router.get('/profile/:name', requireAuth, (req, res) => {
+  const character = db.prepare('SELECT * FROM characters WHERE name = ?').get(req.params.name);
+  if (!character) {
+    return res.status(404).json({ error: 'Character not found.' });
+  }
+
+  const bonuses = getEquippedBonuses(character.id);
+  const derived = computeDerivedStats(character, bonuses);
+
+  const equippedItems = db.prepare(`
+    SELECT ci.upgrade_level, it.slot, it.name, it.image, it.rarity, it.bonus_atk, it.bonus_hp,
+           it.required_level, iset.name as set_name
+    FROM character_inventory ci
+    JOIN item_templates it ON it.id = ci.item_template_id
+    LEFT JOIN item_sets iset ON iset.id = it.set_id
+    WHERE ci.character_id = ? AND ci.equipped = 1
+  `).all(character.id);
+
+  let clanName = null;
+  if (character.clan_id) {
+    const clan = db.prepare('SELECT name FROM clans WHERE id = ?').get(character.clan_id);
+    clanName = clan ? clan.name : null;
+  }
+
+  res.json({
+    profile: {
+      name: character.name,
+      level: character.level,
+      attack: derived.attack,
+      maxHp: derived.maxHp,
+      clanName,
+      equippedItems,
+      activeSets: getActiveSetInfo(character.id),
+    },
+  });
+});
+
 module.exports = { router, serializeCharacter, getEquippedBonuses, getActiveSetInfo, getEquippedWeaponRarity };

@@ -274,10 +274,7 @@ function renderRoom(data) {
     btn.disabled = !exits[dir];
   });
 
-  const playersEl = document.getElementById('room-players');
-  playersEl.textContent = otherPlayers.length
-    ? `Also here: ${otherPlayers.map(p => `${p.name} (Lv.${p.level})`).join(', ')}`
-    : '';
+  renderRoomPlayersList(document.getElementById('room-players'), otherPlayers);
 
   const monsterList = document.getElementById('monster-list');
   monsterList.innerHTML = '';
@@ -315,6 +312,20 @@ function renderRoom(data) {
   respawnNote.textContent = respawningCount > 0
     ? `${respawningCount} more will respawn here shortly.`
     : '';
+}
+
+function renderRoomPlayersList(el, players) {
+  el.innerHTML = '';
+  if (players.length === 0) return;
+  el.appendChild(document.createTextNode('Also here: '));
+  players.forEach((p, i) => {
+    const link = document.createElement('span');
+    link.className = 'player-link';
+    link.textContent = `${p.name} (Lv.${p.level})`;
+    link.addEventListener('click', () => showProfileModal(p.name));
+    el.appendChild(link);
+    if (i < players.length - 1) el.appendChild(document.createTextNode(', '));
+  });
 }
 
 function renderMinimap(room) {
@@ -710,7 +721,7 @@ function renderPaperdoll(items) {
   });
 }
 
-function showItemTooltip(anchorEl, item) {
+function showItemTooltip(anchorEl, item, containerId = 'paperdoll') {
   const tooltip = document.getElementById('item-tooltip');
   const stats = effectiveStats(item);
   const statParts = [];
@@ -725,17 +736,72 @@ function showItemTooltip(anchorEl, item) {
     ${item.set_name ? `<div class="tt-set">Set: ${item.set_name}</div>` : ''}
   `;
 
-  const doll = document.getElementById('paperdoll');
-  const dollRect = doll.getBoundingClientRect();
+  const container = document.getElementById(containerId);
+  const containerRect = container.getBoundingClientRect();
   const anchorRect = anchorEl.getBoundingClientRect();
-  tooltip.style.left = `${anchorRect.left - dollRect.left + anchorRect.width + 8}px`;
-  tooltip.style.top = `${anchorRect.top - dollRect.top}px`;
+  tooltip.style.left = `${anchorRect.left - containerRect.left + anchorRect.width + 8}px`;
+  tooltip.style.top = `${anchorRect.top - containerRect.top}px`;
   tooltip.classList.remove('hidden');
 }
 
 function hideItemTooltip() {
   document.getElementById('item-tooltip').classList.add('hidden');
 }
+
+// ---------- Player profiles ----------
+async function showProfileModal(characterName) {
+  try {
+    const data = await api(`/character/profile/${encodeURIComponent(characterName)}`);
+    renderProfileModal(data.profile);
+    document.getElementById('profile-modal').classList.remove('hidden');
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderProfileModal(profile) {
+  document.getElementById('profile-name').textContent = profile.name;
+  document.getElementById('profile-meta').textContent =
+    `Level ${profile.level}${profile.clanName ? ` — ${profile.clanName}` : ''}`;
+  document.getElementById('profile-stats').innerHTML = `
+    <div class="stat-box"><div class="label">Attack</div><div class="value">${profile.attack}</div></div>
+    <div class="stat-box"><div class="label">Max HP</div><div class="value">${profile.maxHp}</div></div>
+  `;
+
+  const setsEl = document.getElementById('profile-sets');
+  if (profile.activeSets && profile.activeSets.length > 0) {
+    setsEl.innerHTML = profile.activeSets.map(s => {
+      const activeBonus = [...s.bonusTiers].reverse().find(b => b.pieces_required <= s.equippedCount);
+      return `<div class="profile-set-line">${s.name} (${s.equippedCount}/${s.totalPieces})${activeBonus ? ` — +${activeBonus.bonus_atk} ATK / +${activeBonus.bonus_hp} HP active` : ''}</div>`;
+    }).join('');
+  } else {
+    setsEl.innerHTML = '';
+  }
+
+  const equippedBySlot = {};
+  profile.equippedItems.forEach(item => { equippedBySlot[item.slot] = item; });
+
+  const grid = document.getElementById('profile-equipment-grid');
+  grid.innerHTML = '';
+  EQUIPMENT_SLOTS.forEach(slot => {
+    const item = equippedBySlot[slot];
+    const cell = document.createElement('div');
+    cell.className = `profile-equip-slot ${item ? `rarity-${item.rarity}` : 'empty'}`;
+    cell.innerHTML = item
+      ? `<img src="/images/items/${item.image}.svg" alt="${item.name}" />`
+      : `<span class="slot-label">${slot}</span>`;
+    if (item) {
+      cell.addEventListener('mouseenter', () => showItemTooltip(cell, item, 'profile-equipment-grid'));
+      cell.addEventListener('mouseleave', hideItemTooltip);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+document.getElementById('profile-modal-close').addEventListener('click', () => {
+  document.getElementById('profile-modal').classList.add('hidden');
+  hideItemTooltip();
+});
 
 // Computes this item's effective (upgrade-scaled) stats vs. whatever's currently
 // equipped in the same slot, so the player can see if it's actually an upgrade.
@@ -1093,7 +1159,8 @@ async function loadLeaderboard() {
   tbody.innerHTML = '';
   data.rankings.forEach((r, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i + 1}</td><td>${r.name}</td><td>${r.level}</td><td>${r.exp}</td><td>${r.clan_name || '-'}</td>`;
+    tr.innerHTML = `<td>${i + 1}</td><td class="player-link">${r.name}</td><td>${r.level}</td><td>${r.exp}</td><td>${r.clan_name || '-'}</td>`;
+    tr.querySelector('.player-link').addEventListener('click', () => showProfileModal(r.name));
     tbody.appendChild(tr);
   });
 }
@@ -1259,11 +1326,7 @@ function connectSocket() {
     const others = players.filter(p => p.id !== state.character.id);
     state.currentRoomDetails.otherPlayers = others;
     const playersEl = document.getElementById('room-players');
-    if (playersEl) {
-      playersEl.textContent = others.length
-        ? `Also here: ${others.map(p => `${p.name} (Lv.${p.level})`).join(', ')}`
-        : '';
-    }
+    if (playersEl) renderRoomPlayersList(playersEl, others);
   });
 
   // Lets everyone in the room see the boss's HP tick down live, not just whoever's attacking.
@@ -1311,7 +1374,8 @@ function appendChatMessage(logEl, who, text) {
   div.className = 'chat-msg';
   const safeWho = who.replace(/</g, '&lt;');
   const safeText = text.replace(/</g, '&lt;');
-  div.innerHTML = `<span class="who">${safeWho}:</span> ${safeText}`;
+  div.innerHTML = `<span class="who player-link">${safeWho}:</span> ${safeText}`;
+  div.querySelector('.who').addEventListener('click', () => showProfileModal(who));
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
 }

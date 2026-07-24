@@ -195,6 +195,12 @@ Everyone shares the same world, monsters, and leaderboard.
   UI to grant the *first* admin (nothing to click before one exists) - run
   `npm run make-admin <username>` once, locally or via Render's Shell tab
   against production, to bootstrap it.
+- **Player profiles:** click any player's name - in chat, in the "also
+  here" list when you share a room, or on the leaderboard - to open a
+  read-only profile: level, clan, Attack/Max HP, active set bonuses, and
+  their equipped gear (hover any piece for the same stat tooltip used on
+  your own paper-doll). Deliberately excludes gold and unequipped inventory
+  - a profile shows what someone's wearing, not their wallet.
 - **New player tutorial:** a guided, interactive walkthrough shown on first
   login - move to a room, win a fight, accept a quest, equip gear - that
   waits for each *real* action rather than just clicking through slides. A
