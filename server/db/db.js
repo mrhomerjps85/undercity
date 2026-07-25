@@ -307,6 +307,22 @@ ensureColumn('users', 'is_admin', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'last_news_read_at', 'TEXT');
 
+// Unique indexes (not table-level constraints, since these tables already exist on live
+// databases and SQLite can't ALTER TABLE to add a constraint after the fact - an index
+// enforces the same uniqueness and works identically with ON CONFLICT). These back the
+// upsert-based seeding in seed.js: every zone/monster/item/quest insert there is
+// "insert or update by name," so re-running the seeder on an already-populated database
+// safely adds only what's missing instead of either erroring or silently doing nothing.
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_zones_name ON zones(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_templates_name ON monster_templates(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_item_templates_name ON item_templates(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_quest_templates_name ON quest_templates(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_item_sets_name ON item_sets(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_world_bosses_name ON world_bosses(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_drops_pair ON monster_drops(monster_template_id, item_template_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_set_bonuses_pair ON set_bonuses(set_id, pieces_required)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_world_boss_drops_pair ON world_boss_drops(world_boss_id, item_template_id)');
+
 // ---------------------------------------------------------------------
 // Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold
 // rewards were originally hand-picked across several separate content passes (levels

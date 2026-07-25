@@ -107,6 +107,20 @@ Everyone shares the same world, monsters, and leaderboard.
   organized-crime smuggling operation, ending in the exclusive **Kane's
   Grapple Hook**. Forms a 3-piece set ("Smuggler's Legacy") with Smuggler's
   Vest and Kane's Golden Anchor (a 30% bonus drop from the boss).
+- **Idempotent, self-updating world seeding:** `seed.js` used to gate its
+  entire body behind a single "do any zones already exist?" check - which
+  meant any *new* content added to the file after your first deploy (a new
+  zone, new monsters) would never actually reach an already-seeded database
+  on a normal restart, only a brand-new one. Every insert now upserts by
+  name (or checks existence first) instead, so `seed()` always runs in
+  full and safely: existing content is left untouched, and anything newly
+  added to the file gets backfilled into a live database automatically.
+  The one deliberate exception is the world boss - its creation upsert
+  only ever touches its `name` column on conflict, so a server restart
+  never resets an in-progress fight's HP or generation back to full.
+  Verified by simulating a pre-Docklands production database, restarting
+  against it, and confirming the new zone backfilled with zero duplicates
+  anywhere (rooms, spawns, drops, set bonuses) across repeated restarts.
 - **Monster & quest reward rebalancing:** every monster's exp/gold reward is
   calculated from a formula (`expToNextLevel(level) / 25`, named bosses get
   a 2.5x multiplier) rather than hand-picked per monster, and every quest's
