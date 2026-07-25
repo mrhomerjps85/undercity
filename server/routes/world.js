@@ -64,6 +64,8 @@ function getRoomDetails(roomId, character) {
     // worldboss module not available for some reason - room still works without it.
   }
 
+  const npcs = db.prepare('SELECT id, name, description, image, npc_type FROM npcs WHERE room_id = ?').all(roomId);
+
   return {
     room,
     zone,
@@ -71,6 +73,7 @@ function getRoomDetails(roomId, character) {
     respawningCount,
     otherPlayers,
     worldBoss,
+    npcs,
     exits: {
       north: room.north_room_id,
       south: room.south_room_id,

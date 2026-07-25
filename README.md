@@ -165,6 +165,22 @@ Everyone shares the same world, monsters, and leaderboard.
   life), so it naturally resets to empty once the boss respawns, but the
   final standings stay visible for a while after a kill rather than
   vanishing the instant it dies.
+- **Second world boss - The Unbound (Lv.50+):** sitting at Angelio St.'s
+  entrance rather than gated inside a high-level zone, so the "anyone can
+  help regardless of level" spirit stays intact even though it's tuned
+  for endgame characters - roughly 4.4x the Kingpin's HP pool. Drops
+  **The Unbound's Chain** (neck), deliberately picked since every
+  quest-chain reward item up to this point had landed on weapon (four for
+  four) - neck/shield/legs/boots had never gotten a dedicated reward.
+  Fully independent from the Kingpin (separate HP pool, drop table, and
+  contribution tracking) - the whole world boss system was already
+  data-driven enough that adding a second one needed zero frontend changes.
+- **Prestige (rebirth):** at level 50, talk to **The Rebirth Elder** (Main
+  St.'s Town Square) to reset back to level 1 - keeping your gold and
+  inventory, but resetting allocated stat points - in exchange for a small
+  **permanent** stat bonus (+3 Attack / +15 Max HP) that stacks with every
+  future rebirth. Rebirth count shows on the Character sheet. No cap on how
+  many times you can do it.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

@@ -181,4 +181,39 @@ router.get('/profile/:name', requireAuth, (req, res) => {
   });
 });
 
+// Rebirth (prestige): available at level 50. Resets level/exp/allocated stat points back
+// to a fresh start, but keeps gold and inventory - a full wipe would just be punishing, and
+// keeping gear is the whole appeal of steamrolling early levels on the way back up. Grants
+// a small permanent stat bonus (baked into computeDerivedStats via rebirth_count) that
+// stacks with every future rebirth, and moves the character back to Main St.'s entrance.
+router.post('/rebirth', requireAuth, requireCharacter, (req, res) => {
+  if (req.character.level < 50) {
+    return res.status(400).json({ error: 'Rebirth requires level 50.' });
+  }
+
+  const mainStEntrance = db.prepare(`
+    SELECT r.id FROM rooms r JOIN zones z ON z.id = r.zone_id
+    WHERE z.name = 'Main St.' AND r.is_entrance = 1 LIMIT 1
+  `).get();
+
+  // Compute what max HP will actually be post-rebirth (level 1, no allocated points, but
+  // still accounting for equipped gear + the new rebirth bonus) so current_hp starts full
+  // and accurate, rather than a guessed flat number that could be wrong either direction.
+  const bonuses = getEquippedBonuses(req.character.id);
+  const postRebirthStats = computeDerivedStats(
+    { level: 1, attack_points: 0, hp_points: 0, rebirth_count: req.character.rebirth_count + 1 },
+    bonuses
+  );
+
+  db.prepare(`
+    UPDATE characters
+    SET level = 1, exp = 0, attack_points = 0, hp_points = 0, current_hp = ?,
+        rebirth_count = rebirth_count + 1, current_room_id = ?
+    WHERE id = ?
+  `).run(postRebirthStats.maxHp, mainStEntrance ? mainStEntrance.id : req.character.current_room_id, req.character.id);
+
+  const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
+  res.json({ character: serializeCharacter(updated) });
+});
+
 module.exports = { router, serializeCharacter, getEquippedBonuses, getActiveSetInfo, getEquippedWeaponRarity };

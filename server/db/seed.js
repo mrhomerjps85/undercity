@@ -483,6 +483,11 @@ function seed() {
   it.devourersCharm = insertItem.get("Devourer's Charm", 'neck', 46, 35, 110, 3200, 'shop', 0, 'devourers_charm').id;
   it.aegisOfBreach = insertItem.get('Aegis of the Breach', 'shield', 50, 0, 180, 3800, 'shop', 0, 'aegis_of_breach').id;
 
+  // The Unbound's world boss reward - a neck item, deliberately picked since every quest-chain
+  // "big finale reward" so far has landed on weapon (4 for 4) - neck/shield/legs/boots had
+  // never gotten one. Not part of an existing set; a standalone legendary reward.
+  it.unboundsChain = insertItem.get("The Unbound's Chain", 'neck', 50, 40, 130, 0, 'worldboss', 0, 'unbounds_chain').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -541,7 +546,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -722,6 +727,29 @@ function seed() {
 
   const insertWorldBossDrop = db.prepare('INSERT OR IGNORE INTO world_boss_drops (world_boss_id, item_template_id, drop_chance) VALUES (?, ?, ?)');
   insertWorldBossDrop.run(kingpin, it.kingpinsSignet, 0.15);
+
+  // Second world boss - The Unbound, placed at Angelio St.'s entrance rather than gated
+  // inside a high-level zone, so the "anyone can help regardless of level" spirit stays
+  // intact even though it's tuned for level 50+. Roughly 4-5x the Kingpin's toughness.
+  const theUnbound = insertWorldBoss.get(
+    'The Unbound', angelioGrid['4,1'], 50, 220000, 220000, 95, 38, 14400, 30000, 18000, 'the_unbound'
+  ).id;
+  insertWorldBossDrop.run(theUnbound, it.unboundsChain, 0.15);
+
+  // ---------------------------------------------------------------------
+  // NPCS
+  // ---------------------------------------------------------------------
+  const insertNpc = db.prepare(`
+    INSERT INTO npcs (name, room_id, description, image, npc_type) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(name) DO UPDATE SET name=excluded.name RETURNING id
+  `);
+  insertNpc.get(
+    'The Rebirth Elder',
+    mainStGrid['4,4'],
+    "\"You've seen everything this life has to offer, haven't you? There's another way, if you're willing to start over.\"",
+    'rebirth_elder',
+    'rebirth'
+  );
 
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
   console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon)`);

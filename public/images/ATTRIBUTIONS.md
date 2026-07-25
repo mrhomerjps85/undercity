@@ -137,3 +137,6 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | kanes_grapple_hook.svg | grapple | lorc |
 | kanes_golden_anchor.svg | anchor | lorc |
 | docklands.svg | cargo-crane | lorc |
+| rebirth_elder.svg | hooded-figure | darkzaitzev |
+| the_unbound.svg | breaking-chain | skoll |
+| unbounds_chain.svg | gem-chain | lorc |

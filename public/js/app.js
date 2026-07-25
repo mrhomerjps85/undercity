@@ -261,13 +261,14 @@ async function loadCurrentRoom() {
 }
 
 function renderRoom(data) {
-  const { room, zone, monsters, otherPlayers, exits, respawningCount, worldBoss } = data;
+  const { room, zone, monsters, otherPlayers, exits, respawningCount, worldBoss, npcs } = data;
   document.getElementById('zone-name').textContent = `- ${zone.name} -`;
   document.getElementById('room-name').textContent = `- ${room.name} -`;
   document.getElementById('room-image').innerHTML = `<img src="/images/zones/${zone.image}.svg" alt="${zone.name}" />`;
 
   renderMinimap(room);
   renderWorldBossCard(worldBoss);
+  renderRebirthCard(npcs);
 
   document.querySelectorAll('.dpad-btn').forEach(btn => {
     const dir = btn.dataset.dir;
@@ -430,6 +431,44 @@ document.getElementById('worldboss-attack-btn').addEventListener('click', async 
         }
       }, 1000);
     }
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+function renderRebirthCard(npcs) {
+  const card = document.getElementById('rebirth-card');
+  const elder = npcs && npcs.find((n) => n.npc_type === 'rebirth');
+  if (!elder) {
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+  document.getElementById('rebirth-icon').src = `/images/npcs/${elder.image}.svg`;
+  document.getElementById('rebirth-name').textContent = elder.name;
+  document.getElementById('rebirth-quote').textContent = elder.description || '';
+
+  const eligible = state.character.level >= 50;
+  const statusEl = document.getElementById('rebirth-status');
+  const btn = document.getElementById('rebirth-btn');
+  statusEl.textContent = eligible
+    ? `Rebirths so far: ${state.character.rebirth_count || 0}`
+    : 'Requires level 50.';
+  btn.disabled = !eligible;
+}
+
+document.getElementById('rebirth-btn').addEventListener('click', async () => {
+  const confirmed = window.confirm(
+    'Rebirth? You will return to level 1 with your stat points reset, but keep your gold and ' +
+    'inventory. Each rebirth grants a small permanent Attack/HP bonus that stacks forever.'
+  );
+  if (!confirmed) return;
+  try {
+    const data = await api('/character/rebirth', { method: 'POST' });
+    state.character = data.character;
+    updateTopBar();
+    showToast(`Reborn! (Rebirth #${data.character.rebirth_count})`);
+    await loadCurrentRoom();
   } catch (err) {
     showToast(err.message, true);
   }
@@ -600,6 +639,7 @@ function renderCharacterSheet() {
     <div class="stat-box"><div class="label">Max HP</div><div class="value">${c.max_hp}</div></div>
     <div class="stat-box"><div class="label">HP Now</div><div class="value">${c.current_hp}</div></div>
     <div class="stat-box"><div class="label">Level</div><div class="value">${c.level}</div></div>
+    <div class="stat-box"><div class="label">Rebirths</div><div class="value">${c.rebirth_count || 0}</div></div>
   `;
   const note = document.createElement('p');
   note.className = 'hint';

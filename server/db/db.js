@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS characters (
   clan_id INTEGER,
   avatar TEXT DEFAULT 'default',
   tutorial_step INTEGER DEFAULT 0,
+  rebirth_count INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (clan_id) REFERENCES clans(id)
@@ -236,6 +237,19 @@ CREATE TABLE IF NOT EXISTS news_posts (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Room-based NPCs. npc_type distinguishes what a client should render/offer when standing
+-- in their room - 'rebirth' shows the Rebirth card, other types are just flavor for now but
+-- this stays generic so future NPCs (shopkeepers, quest-givers) don't need a new table.
+CREATE TABLE IF NOT EXISTS npcs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  room_id INTEGER NOT NULL,
+  description TEXT,
+  image TEXT,
+  npc_type TEXT NOT NULL DEFAULT 'flavor',
+  FOREIGN KEY (room_id) REFERENCES rooms(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -306,6 +320,7 @@ ensureColumn('characters', 'tutorial_step', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'is_admin', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'last_news_read_at', 'TEXT');
+ensureColumn('characters', 'rebirth_count', 'INTEGER DEFAULT 0');
 
 // Unique indexes (not table-level constraints, since these tables already exist on live
 // databases and SQLite can't ALTER TABLE to add a constraint after the fact - an index
@@ -322,6 +337,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_world_bosses_name ON world_bosses
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_drops_pair ON monster_drops(monster_template_id, item_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_set_bonuses_pair ON set_bonuses(set_id, pieces_required)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_world_boss_drops_pair ON world_boss_drops(world_boss_id, item_template_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_npcs_name ON npcs(name)');
 
 // ---------------------------------------------------------------------
 // Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold

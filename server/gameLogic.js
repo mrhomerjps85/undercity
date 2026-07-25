@@ -10,9 +10,15 @@ function expToNextLevel(level) {
 // bonuses = { atk, hp } aggregated from equipped items.
 // Character only has two allocatable pools: attack_points and hp_points.
 // There is no player-side Defense stat - nothing mitigates incoming damage.
+// Rebirth grants a small permanent stat bonus per rebirth, stacking additively (not a
+// percentage) so it can't spiral out of control after several rebirths.
+const REBIRTH_BONUS_ATTACK = 3;
+const REBIRTH_BONUS_HP = 15;
+
 function computeDerivedStats(character, bonuses) {
-  const maxHp = 50 + character.level * 5 + character.hp_points * 5 + bonuses.hp;
-  const attack = 5 + character.level + character.attack_points * 2 + bonuses.atk;
+  const rebirths = character.rebirth_count || 0;
+  const maxHp = 50 + character.level * 5 + character.hp_points * 5 + bonuses.hp + rebirths * REBIRTH_BONUS_HP;
+  const attack = 5 + character.level + character.attack_points * 2 + bonuses.atk + rebirths * REBIRTH_BONUS_ATTACK;
   return { maxHp, attack };
 }
 
@@ -197,4 +203,6 @@ module.exports = {
   computeWorldBossDamage,
   getCritConfig,
   estimateWinProbability,
+  REBIRTH_BONUS_ATTACK,
+  REBIRTH_BONUS_HP,
 };
