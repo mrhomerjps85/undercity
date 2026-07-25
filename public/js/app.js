@@ -721,7 +721,7 @@ function renderPaperdoll(items) {
   });
 }
 
-function showItemTooltip(anchorEl, item, containerId = 'paperdoll') {
+function showItemTooltip(anchorEl, item) {
   const tooltip = document.getElementById('item-tooltip');
   const stats = effectiveStats(item);
   const statParts = [];
@@ -736,12 +736,17 @@ function showItemTooltip(anchorEl, item, containerId = 'paperdoll') {
     ${item.set_name ? `<div class="tt-set">Set: ${item.set_name}</div>` : ''}
   `;
 
-  const container = document.getElementById(containerId);
-  const containerRect = container.getBoundingClientRect();
+  // Fixed positioning is viewport-relative, so this works the same regardless of which
+  // panel or modal the anchor element happens to be sitting inside.
   const anchorRect = anchorEl.getBoundingClientRect();
-  tooltip.style.left = `${anchorRect.left - containerRect.left + anchorRect.width + 8}px`;
-  tooltip.style.top = `${anchorRect.top - containerRect.top}px`;
-  tooltip.classList.remove('hidden');
+  tooltip.classList.remove('hidden'); // measure only after it's visible, so offsetWidth below is accurate
+  const tooltipWidth = tooltip.offsetWidth;
+  const spaceOnRight = window.innerWidth - anchorRect.right - 8;
+  const left = spaceOnRight >= tooltipWidth
+    ? anchorRect.right + 8
+    : Math.max(8, anchorRect.left - tooltipWidth - 8); // flip to the left side if it wouldn't fit
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${anchorRect.top}px`;
 }
 
 function hideItemTooltip() {
@@ -791,7 +796,7 @@ function renderProfileModal(profile) {
       ? `<img src="/images/items/${item.image}.svg" alt="${item.name}" />`
       : `<span class="slot-label">${slot}</span>`;
     if (item) {
-      cell.addEventListener('mouseenter', () => showItemTooltip(cell, item, 'profile-equipment-grid'));
+      cell.addEventListener('mouseenter', () => showItemTooltip(cell, item));
       cell.addEventListener('mouseleave', hideItemTooltip);
     }
     grid.appendChild(cell);

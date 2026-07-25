@@ -895,8 +895,8 @@ button {
 .doll-slot .slot-icon { width: 34px; height: 34px; }
 
 .item-tooltip {
-  position: absolute;
-  z-index: 60;
+  position: fixed;
+  z-index: 200;
   background: var(--bg-panel);
   border: 1px solid var(--gold);
   padding: 10px 14px;
