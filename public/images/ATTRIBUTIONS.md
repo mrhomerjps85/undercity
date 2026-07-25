@@ -128,3 +128,12 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | devourers_charm.svg | third-eye | lorc |
 | aegis_of_breach.svg | energy-shield | lorc |
 | zhul_breach.svg | vortex | lorc |
+| cargo_smuggler.svg | cargo-crate | delapouite |
+| dockside_enforcer.svg | brute | delapouite |
+| cartel_lieutenant.svg | suits | lorc |
+| harbor_master.svg | ship-wheel | delapouite |
+| dockmaster_kane.svg | meat-hook | lorc |
+| smugglers_vest.svg | life-jacket | delapouite |
+| kanes_grapple_hook.svg | grapple | lorc |
+| kanes_golden_anchor.svg | anchor | lorc |
+| docklands.svg | cargo-crane | lorc |

@@ -53,6 +53,8 @@ function generateRoomNameGrid(size, entranceCoord, entranceName, adjectives, nou
 function seed() {
   if (alreadySeeded()) {
     console.log('World already seeded, skipping. Run "npm run reset-db" to start fresh.');
+    db.rebalanceMonsterRewards();
+    db.rebalanceQuestRewards();
     return;
   }
 
@@ -71,6 +73,7 @@ function seed() {
   const zoneHospital = insertZone.run('City Hospital', 'Something is very wrong in the emergency ward.', 8, 'hospital', 0).lastInsertRowid;
   const zoneUnderworks = insertZone.run('The Underworks', 'A flooded sewer complex beneath the city. Something ancient rules down here.', 12, 'sewer', 1).lastInsertRowid;
   const zoneBlacksite = insertZone.run('The Blacksite', 'An off-the-books corporate research facility. Whatever they were building here, it got loose.', 18, 'blacksite', 1).lastInsertRowid;
+  const zoneDocklands = insertZone.run('The Docklands', "Organized crime runs the shipping yards now. Cargo comes in, and sometimes people don't go back out.", 24, 'docklands', 1).lastInsertRowid;
   const zoneZhulBreach = insertZone.run('The Zhul Breach', "A tear in reality itself has opened beneath the city. Something ancient is pushing through from the other side.", 35, 'zhul_breach', 1).lastInsertRowid;
 
   // ---------------------------------------------------------------------
@@ -143,6 +146,14 @@ function seed() {
   );
   blacksiteNames[7][4] = "The Overseer's Chamber";
   const blacksiteGrid = buildGrid(zoneBlacksite, blacksiteNames, 'blacksite', blacksiteEntranceCoord);
+
+  const docklandsEntranceCoord = [4, 1];
+  const docklandsNames = generateRoomNameGrid(GRID_SIZE, docklandsEntranceCoord, 'Pier Entrance',
+    ['Rusted', 'Foggy', 'Silent', 'Flooded', 'Abandoned', 'Guarded', 'Restricted', 'Salt-Worn', 'Crumbling', 'Overgrown', 'Locked', 'Watched', 'Sunken', 'Windswept', 'Sealed', 'Forgotten', 'Barred', 'Tide-Worn', 'Shadowed', 'Corroded'],
+    ['Pier', 'Warehouse', 'Loading Dock', 'Cargo Bay', 'Container Yard', 'Berth', 'Quay', 'Gantry', 'Freight Hall', 'Drydock', 'Shipping Lane', 'Crane Yard', 'Wharf', 'Storage Hold', 'Customs House', 'Harbor Office', 'Fuel Depot', 'Scrapyard', 'Breakwater', 'Anchorage']
+  );
+  docklandsNames[7][4] = "Kane's Warehouse";
+  const docklandsGrid = buildGrid(zoneDocklands, docklandsNames, 'docklands', docklandsEntranceCoord);
 
   const zhulBreachEntranceCoord = [4, 1];
   const zhulBreachNames = generateRoomNameGrid(GRID_SIZE, zhulBreachEntranceCoord, 'The Breach Threshold',
@@ -218,6 +229,17 @@ function seed() {
   m.failedExperiment = insertMonster.run('Failed Experiment', 24, 385, 30, 12, 380, 190, 'failed_experiment').lastInsertRowid;
   m.aiConstruct = insertMonster.run('Rogue AI Construct', 26, 460, 35, 13, 400, 200, 'ai_construct').lastInsertRowid;
   m.theOverseer = insertMonster.run('The Overseer', 28, 950, 42, 17, 1300, 650, 'overseer').lastInsertRowid;
+
+  // The Docklands (levels 24-31) - fills the gap between the older dungeon caps and The
+  // Zhul Breach's level-35 floor. Reward values here are placeholders (0) - db.js's
+  // rebalanceMonsterRewards() recalculates every monster's exp/gold from its level right
+  // after seeding, so there's no need (and no risk of drift) to hand-tune them here.
+  // Dockmaster Kane is registered as a named boss in that same rebalance function.
+  m.cargoSmuggler = insertMonster.run('Cargo Smuggler', 24, 390, 30, 12, 0, 0, 'cargo_smuggler').lastInsertRowid;
+  m.docksideEnforcer = insertMonster.run('Dockside Enforcer', 25, 425, 32, 13, 0, 0, 'dockside_enforcer').lastInsertRowid;
+  m.cartelLieutenant = insertMonster.run('Cartel Lieutenant', 27, 485, 36, 14, 0, 0, 'cartel_lieutenant').lastInsertRowid;
+  m.harborMaster = insertMonster.run('Corrupt Harbor Master', 29, 505, 38, 15, 0, 0, 'harbor_master').lastInsertRowid;
+  m.dockmasterKane = insertMonster.run('Dockmaster Kane', 31, 980, 47, 19, 0, 0, 'dockmaster_kane').lastInsertRowid;
 
   // Deepened dungeon content - bridges the gap between the existing dungeon caps (28-30)
   // and The Zhul Breach's minimum level (35).
@@ -318,6 +340,17 @@ function seed() {
   spawn(underworksGrid['1,4'], m.sewerCrawler, 4);
   spawn(underworksGrid['7,4'], m.boneCollector, 4);
   spawn(underworksGrid['3,6'], m.underworksGrunt, 4);
+
+  // The Docklands (entrance at 4,1; boss at 4,7 - Kane's Warehouse)
+  spawn(docklandsGrid['3,2'], m.cargoSmuggler, 3);
+  spawn(docklandsGrid['5,2'], m.cargoSmuggler, 3);
+  spawn(docklandsGrid['2,3'], m.docksideEnforcer, 3);
+  spawn(docklandsGrid['6,3'], m.docksideEnforcer, 3);
+  spawn(docklandsGrid['2,5'], m.cartelLieutenant, 2);
+  spawn(docklandsGrid['6,5'], m.cartelLieutenant, 2);
+  spawn(docklandsGrid['4,4'], m.harborMaster, 2);
+  spawn(docklandsGrid['4,6'], m.harborMaster, 2);
+  spawn(docklandsGrid['4,7'] /* Kane's Warehouse */, m.dockmasterKane, 1);
   spawn(underworksGrid['5,6'], m.broodmother, 3);
   spawn(underworksGrid['2,2'], m.broodmother, 3);
 
@@ -406,6 +439,11 @@ function seed() {
   it.bountyBoots = insertItem.run('Bounty Hunter Boots', 'boots', 20, 8, 40, 400, 'shop', 0, 'bounty_boots').lastInsertRowid;
   it.wardensGrip = insertItem.run("Warden's Grip", 'hands', 28, 18, 20, 0, 'dungeon', 0, 'wardens_grip').lastInsertRowid;
 
+  // The Docklands quest-line gear.
+  it.smugglersVest = insertItem.run("Smuggler's Vest", 'chest', 27, 14, 80, 0, 'quest', 0, 'smugglers_vest').lastInsertRowid;
+  it.kanesGrappleHook = insertItem.run("Kane's Grapple Hook", 'weapon', 31, 35, 18, 0, 'dungeon', 0, 'kanes_grapple_hook').lastInsertRowid;
+  it.kanesGoldenAnchor = insertItem.run("Kane's Golden Anchor", 'neck', 31, 33, 105, 0, 'dungeon', 0, 'kanes_golden_anchor').lastInsertRowid;
+
   // Zhul's Blessing set - the endgame quest chain's rewards, capped at Mythic (the tier
   // above Legendary). Zhul's Crown is a bonus drop from the final boss, same pattern as
   // Warden's Grip / Overseer's Core - keeps the finale worth revisiting after the quest is done.
@@ -440,6 +478,7 @@ function seed() {
   insertDrop.run(m.bladeRunner, it.encryptedChip, 0.4);
   insertDrop.run(m.theWarden, it.wardensGrip, 0.3);
   insertDrop.run(m.theOverseer, it.overseerCore, 0.3);
+  insertDrop.run(m.dockmasterKane, it.kanesGoldenAnchor, 0.3);
   insertDrop.run(m.zhulDevourer, it.zhulsCrown, 0.3);
 
   // ---------------------------------------------------------------------
@@ -453,6 +492,11 @@ function seed() {
   [it.bhNeck, it.bountyVest, it.bountyBoots].forEach(itemId => assignToSet.run(bountyHunterSet, itemId));
   insertSetBonus.run(bountyHunterSet, 2, 8, 20);   // any 2 pieces
   insertSetBonus.run(bountyHunterSet, 3, 20, 50);  // full 3-piece set
+
+  const smugglersLegacySet = insertSet.run("Smuggler's Legacy", "Vest, hook, and anchor pendant - everything left of Kane's operation.").lastInsertRowid;
+  [it.smugglersVest, it.kanesGrappleHook, it.kanesGoldenAnchor].forEach(itemId => assignToSet.run(smugglersLegacySet, itemId));
+  insertSetBonus.run(smugglersLegacySet, 2, 16, 45);   // any 2 pieces
+  insertSetBonus.run(smugglersLegacySet, 3, 38, 95);   // full 3-piece set
 
   const wardensRegaliaSet = insertSet.run("Warden's Regalia", "Weapon, plate, and grip stripped from the Underworks' ruler.").lastInsertRowid;
   [it.wardensCleaver, it.underworksPlate, it.wardensGrip].forEach(itemId => assignToSet.run(wardensRegaliaSet, itemId));
@@ -474,8 +518,8 @@ function seed() {
     common: [it.switchblade, it.bat, it.jacket, it.cap],
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
-    epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach],
+    epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -590,6 +634,24 @@ function seed() {
     'kill', m.overseerPrototype, null, 8, 31, null, 2400, 1200, null, zoneBlacksite
   );
 
+  // The Docklands - fills the level 24-31 gap between the older dungeons and The Zhul
+  // Breach. Reward numbers are placeholders (0) - db.rebalanceQuestRewards() recalculates
+  // every quest as 3x its target monster's (already-rebalanced) reward right after seeding.
+  const qdock1 = insertQuest.run(
+    'Cargo Bust', "Smugglers have taken over the pier. Clear them out before whatever they're moving hits the streets.",
+    'kill', m.cargoSmuggler, null, 10, 24, null, 0, 0, null, zoneDocklands
+  ).lastInsertRowid;
+
+  const qdock2 = insertQuest.run(
+    'Breaking the Cartel', "The smugglers answer to someone. Take out their lieutenants and cut off the chain of command.",
+    'kill', m.cartelLieutenant, null, 8, 27, qdock1, 0, 0, it.smugglersVest, zoneDocklands
+  ).lastInsertRowid;
+
+  insertQuest.run(
+    "The Dockmaster's Fall", "Dockmaster Kane runs this whole operation from his warehouse at the end of the pier. End it.",
+    'kill', m.dockmasterKane, null, 1, 30, qdock2, 0, 0, it.kanesGrappleHook, zoneDocklands
+  );
+
   // The Zhul Breach - the game's current endgame finale, a 5-quest chain culminating in
   // Zhul's Blessing, a Mythic 4-piece set (the tier above Legendary).
   const qz1 = insertQuest.run(
@@ -634,8 +696,11 @@ function seed() {
   insertWorldBossDrop.run(kingpin, it.kingpinsSignet, 0.15);
 
   console.log('World seeded successfully.');
-  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Zhul Breach (Lv.35, dungeon)`);
+  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);
+
+  db.rebalanceMonsterRewards();
+  db.rebalanceQuestRewards();
 }
 
 seed();

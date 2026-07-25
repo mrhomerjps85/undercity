@@ -307,4 +307,66 @@ ensureColumn('users', 'is_admin', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'last_news_read_at', 'TEXT');
 
+// ---------------------------------------------------------------------
+// Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold
+// rewards were originally hand-picked across several separate content passes (levels
+// 1-30, then a 30-35 bridge, then 35-50), which drifted out of sync with the actual EXP
+// curve (expToNextLevel grows faster than linear) - some level ranges ended up requiring
+// far more grinding than others for no real reason. This recalculates every monster's
+// reward directly from its level and the same curve the game actually uses, so the
+// "kills needed per level" pacing stays consistent even if more monsters get added later.
+// Named bosses get an intentional 2.5x reward multiplier - that cliff is meant to be
+// there, unlike the accidental unevenness this fixes everywhere else.
+// ---------------------------------------------------------------------
+function rebalanceMonsterRewards() {
+  const { expToNextLevel } = require('../gameLogic');
+  const BOSS_NAMES = new Set(['Ganglord Sid', 'The Overseer', 'The Warden', 'Dockmaster Kane', 'Zhul, the Devourer']);
+  const K_REGULAR = 25; // target kills-to-level-up on a same-level regular monster
+  const BOSS_MULTIPLIER = 2.5;
+  const GOLD_RATIO = 0.47; // matches the ratio already established by the original hand-tuned values
+
+  const monsters = db.prepare('SELECT id, name, level FROM monster_templates').all();
+  const update = db.prepare('UPDATE monster_templates SET exp_reward = ?, gold_reward = ? WHERE id = ?');
+  for (const m of monsters) {
+    const needed = expToNextLevel(m.level);
+    let exp = Math.max(8, Math.round(needed / K_REGULAR));
+    if (BOSS_NAMES.has(m.name)) exp = Math.round(exp * BOSS_MULTIPLIER);
+    const gold = Math.round(exp * GOLD_RATIO);
+    update.run(exp, gold, m.id);
+  }
+}
+// Quest rewards were designed as "3x the equivalent monster grind" (kill N monsters normally
+// vs. get 3x the reward for doing it as a quest) - but they were hardcoded against monster
+// rewards at the time each quest was written, so fixing monster rewards above silently broke
+// that ratio for every quest that predates the fix. Recalculates from the (now-correct)
+// monster rewards so the "3x for questing" policy actually holds. Must run AFTER
+// rebalanceMonsterRewards() - it reads exp_reward values that function just corrected.
+function rebalanceQuestRewards() {
+  const QUEST_MULTIPLIER = 3;
+  const quests = db.prepare('SELECT id, type, required_count, target_monster_template_id, target_item_template_id FROM quest_templates').all();
+  const update = db.prepare('UPDATE quest_templates SET reward_exp = ?, reward_gold = ? WHERE id = ?');
+
+  for (const q of quests) {
+    let monster = null;
+    if (q.type === 'kill' && q.target_monster_template_id) {
+      monster = db.prepare('SELECT exp_reward, gold_reward FROM monster_templates WHERE id = ?').get(q.target_monster_template_id);
+    } else if (q.type === 'collect' && q.target_item_template_id) {
+      // Collect quests don't have a direct monster - use whichever monster drops the target item.
+      const dropper = db.prepare(`
+        SELECT mt.exp_reward, mt.gold_reward FROM monster_drops md
+        JOIN monster_templates mt ON mt.id = md.monster_template_id
+        WHERE md.item_template_id = ? LIMIT 1
+      `).get(q.target_item_template_id);
+      monster = dropper || null;
+    }
+    if (!monster) continue; // nothing to base the reward on - leave as-is rather than guess
+
+    const exp = Math.round(monster.exp_reward * q.required_count * QUEST_MULTIPLIER);
+    const gold = Math.round(monster.gold_reward * q.required_count * QUEST_MULTIPLIER);
+    update.run(exp, gold, q.id);
+  }
+}
+
 module.exports = db;
+module.exports.rebalanceMonsterRewards = rebalanceMonsterRewards;
+module.exports.rebalanceQuestRewards = rebalanceQuestRewards;

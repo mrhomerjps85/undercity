@@ -45,16 +45,17 @@ Everyone shares the same world, monsters, and leaderboard.
   `defense` value, which affects how much damage *you* deal to *them* — that's
   a monster property, not a player stat.) See `ATTACK_POINTS_PER_LEVEL` /
   `HP_POINTS_PER_LEVEL` in `server/gameLogic.js` if you want to retune the ratio.
-- **World navigation:** 6 zones — Main St. (Lv.1), Angelio St. (Lv.5), City
-  Hospital (Lv.8), and three dungeon zones, The Underworks (Lv.12), The
-  Blacksite (Lv.18), and The Zhul Breach (Lv.35) — each a **9x9 grid (81
-  rooms)**, connected N/S/E/W, with a minimap, arrow buttons, and WASD
-  keyboard movement, plus a Travel panel to jump between zones you've
-  unlocked by level. Room names are procedurally generated per zone from
-  themed word banks (see `generateRoomNameGrid` in `server/db/seed.js`) so
-  the world didn't need 300+ hand-authored room names. 57 monster templates
-  are spread across the world, with named bosses like Ganglord Sid, The
-  Warden, The Overseer, and Zhul the Devourer staying unique).
+- **World navigation:** 7 zones — Main St. (Lv.1), Angelio St. (Lv.5), City
+  Hospital (Lv.8), and four dungeon zones, The Underworks (Lv.12), The
+  Blacksite (Lv.18), The Docklands (Lv.24), and The Zhul Breach (Lv.35) —
+  each a **9x9 grid (81 rooms)**, connected N/S/E/W, with a minimap, arrow
+  buttons, and WASD keyboard movement, plus a Travel panel to jump between
+  zones you've unlocked by level. Room names are procedurally generated per
+  zone from themed word banks (see `generateRoomNameGrid` in
+  `server/db/seed.js`) so the world didn't need 300+ hand-authored room
+  names. 62 monster templates are spread across the world, with named
+  bosses like Ganglord Sid, The Overseer, The Warden, Dockmaster Kane, and
+  Zhul the Devourer staying unique).
 - **Quest tracking lives in "My World"** — active quests (with live progress
   bars) and available quests to accept sit right next to the map and room
   view, with an Active/Available toggle. Progress updates immediately after
@@ -78,7 +79,7 @@ Everyone shares the same world, monsters, and leaderboard.
 - **Monster respawns:** defeated monsters go on a cooldown that scales gently
   with their level (`20 + level * 8` seconds) before reappearing. Rooms can
   and do hold multiple copies of the same monster.
-- **Quests:** 26 quests spanning levels 1-50, no gaps — kill quests and
+- **Quests:** 29 quests spanning levels 1-50, no gaps — kill quests and
   collect quests (gather N of an item a monster drops), some chained via
   prerequisites. Quests auto-complete and grant rewards the moment progress
   is met; collect quests consume the gathered items on completion. **All
@@ -100,6 +101,21 @@ Everyone shares the same world, monsters, and leaderboard.
   Railgun**. Both dungeon bosses (The Warden, The Overseer) also have a
   30% chance to drop a bonus item on every kill even after their quest is
   done, so there's a reason to keep farming them.
+- **The Docklands (dungeon, Lv.24+):** fills the level 24-31 gap between the
+  older dungeons and The Zhul Breach's level-35 floor. A 3-quest chain
+  (`Cargo Bust → Breaking the Cartel → The Dockmaster's Fall`) against an
+  organized-crime smuggling operation, ending in the exclusive **Kane's
+  Grapple Hook**. Forms a 3-piece set ("Smuggler's Legacy") with Smuggler's
+  Vest and Kane's Golden Anchor (a 30% bonus drop from the boss).
+- **Monster & quest reward rebalancing:** every monster's exp/gold reward is
+  calculated from a formula (`expToNextLevel(level) / 25`, named bosses get
+  a 2.5x multiplier) rather than hand-picked per monster, and every quest's
+  reward is always exactly `3x` its target monster's reward. Both run as a
+  self-healing pass on **every server start** (see `rebalanceMonsterRewards`
+  / `rebalanceQuestRewards` in `server/db/db.js`), not a one-time fix - so
+  the "kills needed per level" pacing stays consistent even as more content
+  gets added later, instead of silently drifting out of sync the way the
+  original hand-picked values did across several separate content passes.
 - **The Zhul Breach (dungeon, Lv.35+) - the current level cap:** the game's
   endgame finale. A longer 5-quest chain (`Cracks in Reality → Cult of the
   Breach → Echoes of the Warden → Into the Void → The Devourer's End`)
