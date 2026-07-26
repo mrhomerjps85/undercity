@@ -1010,6 +1010,15 @@ button {
 .item-compare.worse { color: var(--blood-bright); }
 .item-compare.neutral { color: var(--ink-dim); }
 .item-set-tag { font-size: 11px; color: var(--gold-bright); margin-top: 2px; }
+.owned-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--teal-bright);
+  border: 1px solid var(--teal);
+  padding: 1px 7px;
+  margin-left: 6px;
+}
 .btn-protect {
   background: transparent;
   border: 1px solid var(--line);

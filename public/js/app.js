@@ -1077,6 +1077,10 @@ function setTagHtml(item) {
   return item.set_name ? `<div class="item-set-tag">Set: ${item.set_name}</div>` : '';
 }
 
+function ownedTagHtml(count) {
+  return count > 0 ? `<span class="owned-tag">Owned: ${count}</span>` : '';
+}
+
 // Approximate cost/risk shown before an upgrade attempt (mirrors server-side formulas
 // in gameLogic.js - kept in sync manually since this is just a heads-up display).
 const UPGRADE_SUCCESS_CHANCE_DISPLAY = { 1: 90, 2: 75, 3: 60, 4: 45, 5: 30 };
@@ -1172,7 +1176,7 @@ function renderShopGrid() {
       <div class="row-with-icon">
         <img class="row-icon" src="/images/items/${item.image}.svg" alt="" />
         <div>
-          <span class="name rarity-${item.rarity}">${item.name}</span> <span class="item-meta">(${item.slot}, req. Lv.${item.required_level})</span>
+          <span class="name rarity-${item.rarity}">${item.name}</span> <span class="item-meta">(${item.slot}, req. Lv.${item.required_level})</span> ${ownedTagHtml(item.owned_count)}
           <div class="item-bonus">${bonusText(item)}</div>
           ${setTagHtml(item)}
           ${comparisonText(item, equippedBySlot)}
@@ -1801,7 +1805,7 @@ function renderRecipesList(recipes) {
       <div class="row-with-icon">
         <img class="row-icon" src="/images/items/${r.item_image}.svg" alt="" />
         <div>
-          <span class="name rarity-${r.rarity}">${r.item_name}</span> <span class="item-meta">(${r.slot}, req. Lv.${r.required_level})</span>
+          <span class="name rarity-${r.rarity}">${r.item_name}</span> <span class="item-meta">(${r.slot}, req. Lv.${r.required_level})</span> ${ownedTagHtml(r.owned_item_count)}
           <div class="item-bonus">${statParts.join(' / ')}</div>
           <div class="recipe-progress ${r.owned_quantity >= r.materials_needed ? 'met' : 'unmet'}">
             ${r.material_name}: ${r.owned_quantity}/${r.materials_needed} — ${r.gold_cost.toLocaleString()} Gold

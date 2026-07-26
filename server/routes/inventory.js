@@ -182,12 +182,14 @@ router.post('/upgrade', requireAuth, requireCharacter, (req, res) => {
 });
 
 // Shop only lists items whose source is 'shop' - dungeon/quest-exclusive gear isn't purchasable.
-router.get('/shop', requireAuth, (req, res) => {
+router.get('/shop', requireAuth, requireCharacter, (req, res) => {
   const items = db.prepare(`
-    SELECT it.*, iset.name as set_name FROM item_templates it
+    SELECT it.*, iset.name as set_name,
+           (SELECT COUNT(*) FROM character_inventory ci WHERE ci.character_id = ? AND ci.item_template_id = it.id) as owned_count
+    FROM item_templates it
     LEFT JOIN item_sets iset ON iset.id = it.set_id
     WHERE it.source = 'shop' ORDER BY it.required_level ASC
-  `).all();
+  `).all(req.character.id);
   res.json({ items });
 });
 

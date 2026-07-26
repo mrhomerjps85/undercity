@@ -25,13 +25,14 @@ router.get('/recipes', requireAuth, requireCharacter, (req, res) => {
            it.name as item_name, it.slot, it.required_level, it.rarity, it.image as item_image,
            it.bonus_atk, it.bonus_hp,
            cm.id as material_id, cm.name as material_name, cm.tier, cm.image as material_image,
-           COALESCE(chm.quantity, 0) as owned_quantity
+           COALESCE(chm.quantity, 0) as owned_quantity,
+           (SELECT COUNT(*) FROM character_inventory ci WHERE ci.character_id = ? AND ci.item_template_id = cr.item_template_id) as owned_item_count
     FROM crafting_recipes cr
     JOIN item_templates it ON it.id = cr.item_template_id
     JOIN crafting_materials cm ON cm.id = cr.material_id
     LEFT JOIN character_materials chm ON chm.material_id = cm.id AND chm.character_id = ?
     ORDER BY cm.tier ASC, it.slot ASC
-  `).all(req.character.id);
+  `).all(req.character.id, req.character.id);
 
   res.json({
     recipes: recipes.map((r) => ({
