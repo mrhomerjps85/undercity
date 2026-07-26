@@ -1,7 +1,11 @@
 const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
-const { computeDerivedStats, expToNextLevel, applyUpgradeMultiplier } = require('../gameLogic');
+const {
+  computeDerivedStats, expToNextLevel, applyUpgradeMultiplier,
+  REBIRTH_BONUS_ATTACK, REBIRTH_BONUS_HP,
+  TOWER_MILESTONE_INTERVAL, TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
+} = require('../gameLogic');
 
 const router = express.Router();
 
@@ -70,11 +74,23 @@ function getEquippedWeaponRarity(characterId) {
 function serializeCharacter(character) {
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
+  const towerMilestones = Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL);
   return {
     ...character,
     max_hp: derived.maxHp,
     attack: derived.attack,
     exp_to_next_level: expToNextLevel(character.level),
+    // Broken out separately so the Character sheet can show players exactly where their
+    // permanent bonuses are coming from, rather than a single opaque total.
+    rebirth_bonus: {
+      atk: (character.rebirth_count || 0) * REBIRTH_BONUS_ATTACK,
+      hp: (character.rebirth_count || 0) * REBIRTH_BONUS_HP,
+    },
+    tower_bonus: {
+      atk: towerMilestones * TOWER_MILESTONE_BONUS_ATTACK,
+      hp: towerMilestones * TOWER_MILESTONE_BONUS_HP,
+      milestonesReached: towerMilestones,
+    },
   };
 }
 

@@ -181,6 +181,25 @@ Everyone shares the same world, monsters, and leaderboard.
   **permanent** stat bonus (+3 Attack / +15 Max HP) that stacks with every
   future rebirth. Rebirth count shows on the Character sheet. No cap on how
   many times you can do it.
+- **Tower of Ascension:** a separate 1-100 leveling track, its own tab
+  (not a walkable zone - there's no map for this one), unlocked once your
+  character reaches level 10. Fight the current floor's guardian (one of
+  four named tiers - Sentinel, Warden, Reaper, Titan - purely for flavor,
+  since the actual stats are 100% formula-driven from the floor number, not
+  hand-tuned) to earn **Tower EXP**, using its own curve (`60 * floor^1.45`)
+  deliberately separate from character leveling. Every 10 floors grants a
+  small **permanent** stat bonus (+1 Attack / +5 Max HP, capping at +10/+50
+  for fully climbing to floor 100) that's baked into your stats everywhere,
+  not just here - and critically, **survives rebirth**: rebirth only
+  touches `level`/`exp`/`attack_points`/`hp_points`, never `tower_level` or
+  `tower_exp`. One real interaction worth knowing: since rebirth resets
+  character level to 1 and the Tower requires level 10, rebirthing
+  temporarily locks you out of the Tower tab until you level back up -
+  your floor progress and earned bonuses aren't lost, just inaccessible
+  for a few levels. Tower monster rewards are pegged to cost exactly 25
+  kills per floor for all 100 floors (`exp_reward = floorExpNeeded / 25`),
+  same self-consistent formula approach used to fix the main reward curve
+  - no boss cliffs, just a steady, predictable long-haul grind.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

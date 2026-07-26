@@ -220,6 +220,8 @@ function updateTopBar() {
   const expPct = Math.max(0, Math.min(100, (c.exp / c.exp_to_next_level) * 100));
   document.getElementById('exp-fill').style.width = expPct + '%';
   document.getElementById('exp-text').textContent = `${c.exp}/${c.exp_to_next_level}`;
+
+  document.getElementById('tower-nav-item').classList.toggle('hidden', c.level < 10);
 }
 
 document.getElementById('level-dropdown-trigger').addEventListener('click', (e) => {
@@ -247,6 +249,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-leaderboard') loadLeaderboard();
       if (btn.dataset.panel === 'panel-admin') loadAdminPanel();
       if (btn.dataset.panel === 'panel-news') loadNewsFeed();
+      if (btn.dataset.panel === 'panel-tower') loadTowerPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -639,14 +642,45 @@ function renderCharacterSheet() {
     <div class="stat-box"><div class="label">Max HP</div><div class="value">${c.max_hp}</div></div>
     <div class="stat-box"><div class="label">HP Now</div><div class="value">${c.current_hp}</div></div>
     <div class="stat-box"><div class="label">Level</div><div class="value">${c.level}</div></div>
-    <div class="stat-box"><div class="label">Rebirths</div><div class="value">${c.rebirth_count || 0}</div></div>
   `;
   const note = document.createElement('p');
   note.className = 'hint';
   note.style.marginTop = '14px';
   note.textContent = 'Attack and HP increase automatically every level.';
   sheet.appendChild(note);
+
+  renderBonusBreakdown();
   loadCombatHistory();
+}
+
+function renderBonusBreakdown() {
+  const c = state.character;
+  const rb = c.rebirth_bonus || { atk: 0, hp: 0 };
+  const tb = c.tower_bonus || { atk: 0, hp: 0, milestonesReached: 0 };
+
+  let box = document.getElementById('bonus-breakdown-box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'bonus-breakdown-box';
+    box.className = 'bonus-breakdown-box';
+    document.getElementById('char-sheet').insertAdjacentElement('afterend', box);
+  }
+
+  box.innerHTML = `
+    <h3 class="subheading">Permanent Bonuses</h3>
+    <div class="bonus-row">
+      <span class="bonus-source">Rebirth <span class="bonus-count">(${c.rebirth_count || 0}x)</span></span>
+      <span class="bonus-values">+${rb.atk} ATK / +${rb.hp} HP</span>
+    </div>
+    <div class="bonus-row">
+      <span class="bonus-source">Tower of Ascension <span class="bonus-count">(${tb.milestonesReached}/10 milestones, floor ${c.tower_level || 0})</span></span>
+      <span class="bonus-values">+${tb.atk} ATK / +${tb.hp} HP</span>
+    </div>
+    <div class="bonus-row bonus-total">
+      <span class="bonus-source">Total permanent bonus</span>
+      <span class="bonus-values">+${rb.atk + tb.atk} ATK / +${rb.hp + tb.hp} HP</span>
+    </div>
+  `;
 }
 
 function timeAgo(isoString) {
@@ -1627,6 +1661,59 @@ document.getElementById('news-post-btn').addEventListener('click', async () => {
     document.getElementById('news-body-input').value = '';
     showToast('Posted!');
     loadNewsFeed();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// ---------- Tower of Ascension ----------
+async function loadTowerPanel() {
+  try {
+    const status = await api('/tower/status');
+    renderTowerStatus(status);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderTowerStatus(status) {
+  document.getElementById('tower-floor-label').textContent = `Floor ${status.towerLevel} / 100`;
+  document.getElementById('tower-milestone-label').textContent = status.atCap
+    ? 'Tower fully climbed!'
+    : `Next bonus at floor ${status.nextMilestoneAt}`;
+
+  const pct = status.atCap ? 100 : Math.max(0, Math.min(100, (status.towerExp / status.expToNextLevel) * 100));
+  document.getElementById('tower-bar-fill').style.width = pct + '%';
+  document.getElementById('tower-exp-text').textContent = status.atCap
+    ? `Permanent bonus earned: +${status.permanentBonus.atk} ATK / +${status.permanentBonus.hp} HP`
+    : `${status.towerExp}/${status.expToNextLevel} EXP — permanent bonus so far: +${status.permanentBonus.atk} ATK / +${status.permanentBonus.hp} HP`;
+
+  const fightCard = document.getElementById('tower-fight-card');
+  if (status.atCap) {
+    fightCard.classList.add('hidden');
+  } else {
+    fightCard.classList.remove('hidden');
+    document.getElementById('tower-monster-icon').src = `/images/monsters/${status.currentMonster.image}.svg`;
+    document.getElementById('tower-monster-name').textContent = status.currentMonster.name;
+    document.getElementById('tower-monster-meta').textContent = `${status.currentMonster.exp_reward} EXP / ${status.currentMonster.gold_reward} Gold`;
+  }
+}
+
+document.getElementById('tower-attack-btn').addEventListener('click', async () => {
+  try {
+    const data = await api('/tower/attack', { method: 'POST' });
+    state.character = data.character;
+    updateTopBar();
+    renderTowerStatus(data.status);
+    if (data.victory) {
+      let msg = `Victory! +${data.expGained} Tower EXP, +${data.goldGained} Gold`;
+      if (data.crits > 0) msg += ` (${data.crits} crit${data.crits > 1 ? 's' : ''}!)`;
+      if (data.milestoneHit) msg += ` — Floor ${data.milestoneHit} milestone! +1 ATK / +5 HP permanently.`;
+      else if (data.towerLeveledUp) msg += ' — Floor cleared!';
+      showToast(msg);
+    } else {
+      showToast('Defeated. Try again once you level up a bit.', true);
+    }
   } catch (err) {
     showToast(err.message, true);
   }

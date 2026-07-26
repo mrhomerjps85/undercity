@@ -140,3 +140,8 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | rebirth_elder.svg | hooded-figure | darkzaitzev |
 | the_unbound.svg | breaking-chain | skoll |
 | unbounds_chain.svg | gem-chain | lorc |
+| ascension_sentinel.svg | golem-head | delapouite |
+| ascension_warden.svg | black-knight-helm | delapouite |
+| ascension_reaper.svg | grim-reaper | lorc |
+| ascension_titan.svg | giant | delapouite |
+| ascension_tower.svg | watchtower | delapouite |

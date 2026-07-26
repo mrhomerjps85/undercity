@@ -88,6 +88,7 @@
       <button class="nav-item" data-panel="panel-clan">Clan</button>
       <button class="nav-item" data-panel="panel-leaderboard">Rankings</button>
       <button class="nav-item" data-panel="panel-news">News<span class="nav-badge hidden" id="news-badge"></span></button>
+      <button class="nav-item hidden" id="tower-nav-item" data-panel="panel-tower">Ascension</button>
       <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
@@ -300,6 +301,42 @@
       </div>
 
       <div class="news-feed" id="news-feed"></div>
+    </section>
+
+    <!-- TOWER OF ASCENSION PANEL -->
+    <section class="panel hidden" id="panel-tower">
+      <h2 class="panel-title">Tower of Ascension</h2>
+
+      <div class="tower-progress-card">
+        <div class="tower-progress-header">
+          <span class="tower-floor-label" id="tower-floor-label">Floor 0 / 100</span>
+          <span class="tower-milestone-label" id="tower-milestone-label"></span>
+        </div>
+        <div class="bar tower-bar"><div class="bar-fill" id="tower-bar-fill"></div></div>
+        <div class="tower-exp-text" id="tower-exp-text"></div>
+      </div>
+
+      <div class="tower-fight-card" id="tower-fight-card">
+        <div class="tower-fight-header">
+          <img class="tower-monster-icon" id="tower-monster-icon" src="" alt="" />
+          <div>
+            <div class="tower-monster-name" id="tower-monster-name">-</div>
+            <div class="tower-monster-meta" id="tower-monster-meta"></div>
+          </div>
+        </div>
+        <button class="btn-attack" id="tower-attack-btn">Attack</button>
+      </div>
+
+      <div class="tower-info-box">
+        <h3 class="subheading">How the Tower works</h3>
+        <ul>
+          <li>The Tower is a separate climb from your character level - available once you reach character level 10. Your floor and EXP progress here <strong>never resets when you rebirth</strong> - but since rebirth also resets your character level back to 1, you'll temporarily lose access to this tab until you level back up to 10 again. Nothing is lost, it just becomes inaccessible for a little while.</li>
+          <li>Each floor is fought at full HP, same as any other fight - win to gain Tower EXP and gold, and climb toward the next floor.</li>
+          <li>Every <strong>10 floors</strong> you clear grants a small <strong>permanent</strong> stat bonus (+1 Attack / +5 Max HP) that stacks forever - these bonuses are baked into your stats everywhere, not just in the Tower, and show up on your Character sheet alongside your rebirth bonus.</li>
+          <li>The Tower goes up to floor <strong>100</strong>. Floors get harder the higher you climb, but the pace is intentionally steady the whole way - roughly the same number of fights per floor from floor 1 to floor 100, with no sudden difficulty spikes.</li>
+          <li>There's no item loot in the Tower - just EXP, gold, and the permanent milestone bonuses.</li>
+        </ul>
+      </div>
     </section>
 
     <section class="panel hidden" id="panel-admin">

@@ -861,6 +861,29 @@ button {
 .combat-history-row .ch-reward { color: var(--gold-bright); }
 .combat-history-row .ch-time { color: var(--ink-dim); font-size: 11px; }
 
+.bonus-breakdown-box {
+  max-width: 500px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  padding: 14px 18px;
+  margin: 16px 0 20px;
+}
+.bonus-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.bonus-row:last-child { border-bottom: none; }
+.bonus-source { color: var(--ink); }
+.bonus-count { color: var(--ink-dim); font-size: 11px; }
+.bonus-values { color: var(--teal-bright); font-weight: 600; }
+.bonus-row.bonus-total { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--gold); }
+.bonus-row.bonus-total .bonus-source { color: var(--gold-bright); font-weight: 600; }
+.bonus-row.bonus-total .bonus-values { color: var(--gold-bright); }
+
 /* ============ INVENTORY / SHOP ============ */
 .equipment-layout {
   display: flex;
@@ -1182,6 +1205,62 @@ button {
 .news-category-tag.category-event { color: var(--gold-bright); border: 1px solid var(--gold); }
 .news-category-tag.category-maintenance { color: var(--blood-bright); border: 1px solid var(--blood); }
 .news-post-body { font-size: 13px; color: var(--ink-dim); line-height: 1.6; white-space: pre-wrap; }
+
+/* ============ TOWER OF ASCENSION ============ */
+.tower-progress-card {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--gold);
+  padding: 16px;
+  margin-bottom: 16px;
+  max-width: 600px;
+}
+.tower-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.tower-floor-label {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--gold-bright);
+}
+.tower-milestone-label { font-size: 12px; color: var(--teal-bright); }
+.tower-bar { height: 14px; margin-bottom: 8px; }
+.tower-exp-text { font-size: 12px; color: var(--ink-dim); }
+
+.tower-fight-card {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  padding: 16px;
+  margin-bottom: 20px;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.tower-fight-header { display: flex; align-items: center; gap: 12px; }
+.tower-monster-icon {
+  width: 52px;
+  height: 52px;
+  background: var(--bg-void);
+  border: 1px solid var(--line);
+  padding: 7px;
+  flex-shrink: 0;
+}
+.tower-monster-name { font-family: var(--font-heading); font-size: 15px; color: var(--ink); }
+.tower-monster-meta { font-size: 11px; color: var(--blood-bright); margin-top: 2px; }
+
+.tower-info-box {
+  max-width: 700px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+}
+.tower-info-box ul { margin: 8px 0 0; padding-left: 20px; }
+.tower-info-box li { font-size: 12px; color: var(--ink-dim); line-height: 1.7; margin-bottom: 4px; }
+.tower-info-box strong { color: var(--gold-bright); }
 .news-delete-btn { flex-shrink: 0; }
 
 /* ============ CLAN PANEL ============ */

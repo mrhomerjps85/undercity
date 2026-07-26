@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS characters (
   avatar TEXT DEFAULT 'default',
   tutorial_step INTEGER DEFAULT 0,
   rebirth_count INTEGER DEFAULT 0,
+  tower_level INTEGER DEFAULT 0,
+  tower_exp INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (clan_id) REFERENCES clans(id)
@@ -321,6 +323,8 @@ ensureColumn('users', 'is_admin', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
 ensureColumn('users', 'last_news_read_at', 'TEXT');
 ensureColumn('characters', 'rebirth_count', 'INTEGER DEFAULT 0');
+ensureColumn('characters', 'tower_level', 'INTEGER DEFAULT 0');
+ensureColumn('characters', 'tower_exp', 'INTEGER DEFAULT 0');
 
 // Unique indexes (not table-level constraints, since these tables already exist on live
 // databases and SQLite can't ALTER TABLE to add a constraint after the fact - an index

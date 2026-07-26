@@ -15,10 +15,21 @@ function expToNextLevel(level) {
 const REBIRTH_BONUS_ATTACK = 3;
 const REBIRTH_BONUS_HP = 15;
 
+// Tower of Ascension: a separate, parallel leveling track (1-100) grinded independently of
+// character level. Every 10 tower levels reached grants a permanent stat bonus that survives
+// rebirth (rebirth only resets level/exp/attack_points/hp_points, never tower_level/tower_exp).
+const TOWER_MILESTONE_INTERVAL = 10;
+const TOWER_MILESTONE_BONUS_ATTACK = 1;
+const TOWER_MILESTONE_BONUS_HP = 5;
+const TOWER_MAX_LEVEL = 100;
+
 function computeDerivedStats(character, bonuses) {
   const rebirths = character.rebirth_count || 0;
-  const maxHp = 50 + character.level * 5 + character.hp_points * 5 + bonuses.hp + rebirths * REBIRTH_BONUS_HP;
-  const attack = 5 + character.level + character.attack_points * 2 + bonuses.atk + rebirths * REBIRTH_BONUS_ATTACK;
+  const towerMilestones = Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL);
+  const maxHp = 50 + character.level * 5 + character.hp_points * 5 + bonuses.hp
+    + rebirths * REBIRTH_BONUS_HP + towerMilestones * TOWER_MILESTONE_BONUS_HP;
+  const attack = 5 + character.level + character.attack_points * 2 + bonuses.atk
+    + rebirths * REBIRTH_BONUS_ATTACK + towerMilestones * TOWER_MILESTONE_BONUS_ATTACK;
   return { maxHp, attack };
 }
 
@@ -39,6 +50,73 @@ function applyExpGain(character, expGained) {
     character.hp_points += HP_POINTS_PER_LEVEL;
     leveledUp = true;
     levelsGained += 1;
+  }
+  return { leveledUp, levelsGained };
+}
+
+// ---------------------------------------------------------------------
+// Tower of Ascension - EXP required for the NEXT tower level, given the current one.
+// Deliberately its own curve, separate from expToNextLevel (character leveling) - designed
+// so a same-tier tower monster's reward (see computeTowerMonster below) always costs exactly
+// 25 kills to clear, for every level from 1 to 100, with no boss cliffs or uneven patches -
+// this is meant to be a long, consistent grind, not a story arc with beats.
+// ---------------------------------------------------------------------
+function expToNextTowerLevel(towerLevel) {
+  return Math.round(60 * Math.pow(towerLevel, 1.45));
+}
+
+const TOWER_KILLS_PER_LEVEL = 25;
+const TOWER_GOLD_RATIO = 0.47; // matches the ratio already established for regular monster rewards
+
+// Named tiers purely for flavor/visual variety - the underlying stats are 100% formula-driven
+// from the tower level, not hand-tuned per tier, so there's nothing to keep in sync manually.
+const TOWER_TIERS = [
+  { maxLevel: 25, name: 'Ascension Sentinel', image: 'ascension_sentinel' },
+  { maxLevel: 50, name: 'Ascension Warden', image: 'ascension_warden' },
+  { maxLevel: 75, name: 'Ascension Reaper', image: 'ascension_reaper' },
+  { maxLevel: 100, name: 'Ascension Titan', image: 'ascension_titan' },
+];
+
+function getTowerTier(towerLevel) {
+  return TOWER_TIERS.find((t) => towerLevel <= t.maxLevel) || TOWER_TIERS[TOWER_TIERS.length - 1];
+}
+
+// Computes the "virtual monster" for a given tower level - not a database row, generated
+// live from the formula every time, the same way win-probability estimates are computed
+// on the fly rather than stored.
+function computeTowerMonster(towerLevel) {
+  const tier = getTowerTier(towerLevel);
+  const expNeeded = expToNextTowerLevel(towerLevel);
+  const expReward = Math.max(5, Math.round(expNeeded / TOWER_KILLS_PER_LEVEL));
+  return {
+    name: `${tier.name} (Floor ${towerLevel})`,
+    image: tier.image,
+    level: towerLevel,
+    max_hp: 40 + towerLevel * 12,
+    attack: 8 + towerLevel * 2,
+    defense: 3 + Math.round(towerLevel * 0.8),
+    exp_reward: expReward,
+    gold_reward: Math.round(expReward * TOWER_GOLD_RATIO),
+  };
+}
+
+// Tower exp-gain/level-up loop, mirroring applyExpGain's shape but capped at level 100 and
+// using the tower's own curve. Character objects here use tower_level/tower_exp, not
+// level/exp - kept as a separate function (not a reused applyExpGain) since the two systems
+// have different caps and no shared stat-point allocation.
+function applyTowerExpGain(character, expGained) {
+  character.tower_exp += expGained;
+  let leveledUp = false;
+  let levelsGained = 0;
+  while (character.tower_level < TOWER_MAX_LEVEL && character.tower_exp >= expToNextTowerLevel(character.tower_level + 1)) {
+    character.tower_exp -= expToNextTowerLevel(character.tower_level + 1);
+    character.tower_level += 1;
+    leveledUp = true;
+    levelsGained += 1;
+  }
+  if (character.tower_level >= TOWER_MAX_LEVEL) {
+    character.tower_level = TOWER_MAX_LEVEL;
+    character.tower_exp = 0; // fully climbed - nothing more to grind toward
   }
   return { leveledUp, levelsGained };
 }
@@ -205,4 +283,11 @@ module.exports = {
   estimateWinProbability,
   REBIRTH_BONUS_ATTACK,
   REBIRTH_BONUS_HP,
+  expToNextTowerLevel,
+  computeTowerMonster,
+  applyTowerExpGain,
+  TOWER_MAX_LEVEL,
+  TOWER_MILESTONE_INTERVAL,
+  TOWER_MILESTONE_BONUS_ATTACK,
+  TOWER_MILESTONE_BONUS_HP,
 };
