@@ -84,13 +84,9 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
 
   const result = resolveCombat(characterStats, roomMonster, weaponRarity);
 
-  db.prepare(`
-    INSERT INTO combat_log (character_id, monster_name, result, exp_gained, gold_gained)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(character.id, roomMonster.name, result.victory ? 'victory' : 'defeat', result.expGained, result.goldGained);
-
   let leveledUp = false;
   let levelsGained = 0;
+  let levelUpGains = null;
   let droppedItems = [];
   let droppedMaterials = [];
   let completedQuests = [];
@@ -131,11 +127,29 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
           .run(afterQuestChar.exp, afterQuestChar.level, afterQuestChar.attack_points, afterQuestChar.hp_points, character.id);
       }
     }
+
+    // Diffing actual before/after derived stats (rather than assuming a fixed per-level
+    // amount) means this stays correct even if the leveling formula ever changes - no
+    // separate constant to keep in sync.
+    if (leveledUp) {
+      const finalChar = db.prepare('SELECT * FROM characters WHERE id = ?').get(character.id);
+      const finalDerived = computeDerivedStats(finalChar, bonuses);
+      levelUpGains = { atk: finalDerived.attack - derived.attack, hp: finalDerived.maxHp - derived.maxHp };
+    }
   } else {
     db.prepare('UPDATE characters SET current_hp = ? WHERE id = ?').run(result.hpRemaining, character.id);
   }
 
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(character.id);
+
+  db.prepare(`
+    INSERT INTO combat_log (character_id, monster_name, result, exp_gained, gold_gained, dropped_items, dropped_materials)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    character.id, roomMonster.name, result.victory ? 'victory' : 'defeat', result.expGained, result.goldGained,
+    droppedItems.length ? JSON.stringify(droppedItems) : null,
+    droppedMaterials.length ? JSON.stringify(droppedMaterials) : null
+  );
 
   res.json({
     log: result.log,
@@ -145,6 +159,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     crits: result.crits,
     leveledUp,
     levelsGained,
+    levelUpGains,
     droppedItems,
     droppedMaterials,
     completedQuests,
@@ -156,10 +171,16 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
 // this just surfaces it for the "Recent Battles" list on the Character sheet.
 router.get('/history', requireAuth, requireCharacter, (req, res) => {
   const entries = db.prepare(`
-    SELECT monster_name, result, exp_gained, gold_gained, created_at
+    SELECT monster_name, result, exp_gained, gold_gained, dropped_items, dropped_materials, created_at
     FROM combat_log WHERE character_id = ? ORDER BY id DESC LIMIT 50
   `).all(req.character.id);
-  res.json({ entries });
+  res.json({
+    entries: entries.map((e) => ({
+      ...e,
+      dropped_items: e.dropped_items ? JSON.parse(e.dropped_items) : [],
+      dropped_materials: e.dropped_materials ? JSON.parse(e.dropped_materials) : [],
+    })),
+  });
 });
 
 module.exports = router;

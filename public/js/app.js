@@ -651,7 +651,7 @@ function showCombatModal(data) {
     result.innerHTML = `
       <div class="cr-title">Victory!</div>
       ${rows.join('')}
-      ${data.leveledUp ? `<div class="cr-levelup">LEVEL UP! You are now level ${data.character.level}</div>` : ''}
+      ${data.leveledUp ? `<div class="cr-levelup">LEVEL UP! You are now level ${data.character.level}${data.levelUpGains ? ` (+${data.levelUpGains.atk} ATK / +${data.levelUpGains.hp} HP)` : ''}</div>` : ''}
     `;
   } else {
     result.className = 'combat-result defeat';
@@ -737,11 +737,21 @@ async function loadCombatHistory() {
   data.entries.forEach(e => {
     const row = document.createElement('div');
     row.className = `combat-history-row ${e.result}`;
+    const dropParts = [];
+    if (e.dropped_items && e.dropped_items.length) {
+      dropParts.push(`<span class="ch-drop-item">Items: ${e.dropped_items.join(', ')}</span>`);
+    }
+    if (e.dropped_materials && e.dropped_materials.length) {
+      dropParts.push(`<span class="ch-drop-material">Materials: ${e.dropped_materials.join(', ')}</span>`);
+    }
     row.innerHTML = `
-      <span class="ch-monster">${e.monster_name}</span>
-      <span class="ch-result-${e.result}">${e.result === 'victory' ? 'Won' : 'Lost'}</span>
-      <span class="ch-reward">${e.result === 'victory' ? `+${e.exp_gained} EXP / +${e.gold_gained}g` : '—'}</span>
-      <span class="ch-time">${timeAgo(e.created_at)}</span>
+      <div class="ch-summary">
+        <span class="ch-monster">${e.monster_name}</span>
+        <span class="ch-result-${e.result}">${e.result === 'victory' ? 'Won' : 'Lost'}</span>
+        <span class="ch-reward">${e.result === 'victory' ? `+${e.exp_gained} EXP / +${e.gold_gained}g` : '—'}</span>
+        <span class="ch-time">${timeAgo(e.created_at)}</span>
+      </div>
+      ${dropParts.length ? `<div class="ch-drops">${dropParts.join(' &nbsp;|&nbsp; ')}</div>` : ''}
     `;
     list.appendChild(row);
   });

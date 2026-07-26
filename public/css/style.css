@@ -846,15 +846,28 @@ button {
 }
 .combat-history-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
   background: var(--bg-panel-raised);
   border: 1px solid var(--line);
   padding: 8px 14px;
   font-size: 12px;
 }
+.combat-history-row .ch-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .combat-history-row.victory { border-left: 3px solid var(--teal); }
 .combat-history-row.defeat { border-left: 3px solid var(--blood); }
+.combat-history-row .ch-drops {
+  font-size: 11px;
+  color: var(--ink-dim);
+  padding-top: 3px;
+  border-top: 1px solid var(--line);
+}
+.combat-history-row .ch-drop-item { color: var(--ink); }
+.combat-history-row .ch-drop-material { color: #a259d9; }
 .combat-history-row .ch-monster { color: var(--ink); }
 .combat-history-row .ch-result-victory { color: var(--teal-bright); }
 .combat-history-row .ch-result-defeat { color: var(--blood-bright); }

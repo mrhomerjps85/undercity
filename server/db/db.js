@@ -214,6 +214,8 @@ CREATE TABLE IF NOT EXISTS combat_log (
   result TEXT,
   exp_gained INTEGER,
   gold_gained INTEGER,
+  dropped_items TEXT, -- JSON array of item names, e.g. '["Steel Pipe"]' - null/empty if none
+  dropped_materials TEXT, -- JSON array of material names, same format
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -372,6 +374,8 @@ ensureColumn('users', 'last_news_read_at', 'TEXT');
 ensureColumn('characters', 'rebirth_count', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'tower_level', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'tower_exp', 'INTEGER DEFAULT 0');
+ensureColumn('combat_log', 'dropped_items', 'TEXT');
+ensureColumn('combat_log', 'dropped_materials', 'TEXT');
 
 // Unique indexes (not table-level constraints, since these tables already exist on live
 // databases and SQLite can't ALTER TABLE to add a constraint after the fact - an index
