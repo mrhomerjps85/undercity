@@ -1365,13 +1365,46 @@ button {
   max-height: 320px;
 }
 .combat-result {
-  font-family: var(--font-heading);
-  font-size: 16px;
+  font-family: var(--font-body);
   margin-bottom: 16px;
-  text-align: center;
 }
-.combat-result.victory { color: var(--gold-bright); }
-.combat-result.defeat { color: var(--blood-bright); }
+.combat-result.victory .cr-title { color: var(--gold-bright); }
+.combat-result.defeat .cr-title { color: var(--blood-bright); }
+.cr-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.cr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 4px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.cr-row:last-of-type { border-bottom: none; }
+.cr-label { color: var(--ink-dim); }
+.cr-value { font-weight: 600; text-align: right; }
+.cr-exp { color: var(--teal-bright); }
+.cr-gold { color: var(--gold-bright); }
+.cr-crit { color: var(--blood-bright); }
+.cr-item { color: var(--ink); }
+.cr-material { color: #a259d9; }
+.cr-quest { color: var(--gold-bright); }
+.cr-levelup {
+  margin-top: 12px;
+  padding: 10px;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: var(--gold-bright);
+  background: linear-gradient(180deg, rgba(232,168,60,0.15), transparent);
+  border: 1px solid var(--gold);
+}
 
 /* ============ TOAST ============ */
 .toast {

@@ -632,17 +632,30 @@ function showCombatModal(data) {
 
   if (data.victory) {
     result.className = 'combat-result victory';
-    let msg = `Victory! +${data.expGained} EXP, +${data.goldGained} Gold`;
-    if (data.crits > 0) msg += ` (${data.crits} critical hit${data.crits > 1 ? 's' : ''}!)`;
-    if (data.leveledUp) msg += ` — LEVEL UP! You are now level ${data.character.level}!`;
-    if (data.droppedItems && data.droppedItems.length) msg += ` | Found: ${data.droppedItems.join(', ')}`;
-    if (data.completedQuests && data.completedQuests.length) {
-      msg += ` | Quest complete: ${data.completedQuests.map(q => q.questName).join(', ')}!`;
+    const rows = [];
+    rows.push(`<div class="cr-row"><span class="cr-label">EXP</span><span class="cr-value cr-exp">+${data.expGained}</span></div>`);
+    rows.push(`<div class="cr-row"><span class="cr-label">Gold</span><span class="cr-value cr-gold">+${data.goldGained}</span></div>`);
+    if (data.crits > 0) {
+      rows.push(`<div class="cr-row"><span class="cr-label">Critical Hits</span><span class="cr-value cr-crit">${data.crits}</span></div>`);
     }
-    result.textContent = msg;
+    if (data.droppedItems && data.droppedItems.length) {
+      rows.push(`<div class="cr-row"><span class="cr-label">Items Found</span><span class="cr-value cr-item">${data.droppedItems.join(', ')}</span></div>`);
+    }
+    if (data.droppedMaterials && data.droppedMaterials.length) {
+      rows.push(`<div class="cr-row"><span class="cr-label">Materials Found</span><span class="cr-value cr-material">${data.droppedMaterials.join(', ')}</span></div>`);
+    }
+    if (data.completedQuests && data.completedQuests.length) {
+      rows.push(`<div class="cr-row"><span class="cr-label">Quest Complete</span><span class="cr-value cr-quest">${data.completedQuests.map(q => q.questName).join(', ')}</span></div>`);
+    }
+
+    result.innerHTML = `
+      <div class="cr-title">Victory!</div>
+      ${rows.join('')}
+      ${data.leveledUp ? `<div class="cr-levelup">LEVEL UP! You are now level ${data.character.level}</div>` : ''}
+    `;
   } else {
     result.className = 'combat-result defeat';
-    result.textContent = 'You were defeated and limp back to the street.';
+    result.innerHTML = `<div class="cr-title">Defeat</div><div class="cr-row"><span class="cr-label">You were defeated and limp back to the street.</span></div>`;
   }
 
   modal.classList.remove('hidden');
