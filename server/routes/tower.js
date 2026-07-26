@@ -90,4 +90,17 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
   });
 });
 
+// A separate ranking from the main character leaderboard - climbing the Tower is its own
+// axis of progress, independent of character level/rebirth, so it gets its own board here
+// on the Ascension tab rather than being folded into the main Rankings page.
+router.get('/leaderboard', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT name, tower_level, tower_exp FROM characters
+    WHERE tower_level > 0
+    ORDER BY tower_level DESC, tower_exp DESC
+    LIMIT 50
+  `).all();
+  res.json({ rankings: rows });
+});
+
 module.exports = router;

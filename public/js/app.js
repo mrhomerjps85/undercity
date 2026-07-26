@@ -1284,7 +1284,7 @@ async function loadLeaderboard() {
   tbody.innerHTML = '';
   data.rankings.forEach((r, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i + 1}</td><td class="player-link">${r.name}</td><td>${r.level}</td><td>${r.exp}</td><td>${r.clan_name || '-'}</td>`;
+    tr.innerHTML = `<td>${i + 1}</td><td class="player-link">${r.name}</td><td>${r.level}</td><td>${r.rebirth_count || 0}</td><td>${r.exp}</td><td>${r.clan_name || '-'}</td>`;
     tr.querySelector('.player-link').addEventListener('click', () => showProfileModal(r.name));
     tbody.appendChild(tr);
   });
@@ -1719,6 +1719,20 @@ async function loadTowerPanel() {
     renderTowerStatus(status);
   } catch (err) {
     showToast(err.message, true);
+  }
+
+  try {
+    const data = await api('/tower/leaderboard');
+    const tbody = document.querySelector('#tower-leaderboard-table tbody');
+    tbody.innerHTML = '';
+    data.rankings.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i + 1}</td><td class="player-link">${r.name}</td><td>${r.tower_level}</td>`;
+      tr.querySelector('.player-link').addEventListener('click', () => showProfileModal(r.name));
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    // Non-critical - the main Tower status above still works even if this fails.
   }
 }
 
