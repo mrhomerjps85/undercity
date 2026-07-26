@@ -31,6 +31,31 @@ function rollDrops(characterId, monsterTemplateId) {
   return dropped;
 }
 
+// Crafting materials stack (character_materials.quantity), unlike equipment - each roll
+// either creates the character's first-ever row for that material or increments the
+// existing one, using the same upsert pattern established for idempotent seeding.
+const upsertMaterialQuantity = db.prepare(`
+  INSERT INTO character_materials (character_id, material_id, quantity) VALUES (?, ?, 1)
+  ON CONFLICT(character_id, material_id) DO UPDATE SET quantity = quantity + 1
+`);
+
+function rollMaterialDrops(characterId, monsterTemplateId) {
+  const drops = db.prepare(`
+    SELECT mmd.*, cm.name FROM monster_material_drops mmd
+    JOIN crafting_materials cm ON cm.id = mmd.material_id
+    WHERE mmd.monster_template_id = ?
+  `).all(monsterTemplateId);
+
+  const dropped = [];
+  for (const drop of drops) {
+    if (Math.random() <= drop.drop_chance) {
+      upsertMaterialQuantity.run(characterId, drop.material_id);
+      dropped.push(drop.name);
+    }
+  }
+  return dropped;
+}
+
 router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const { roomMonsterId } = req.body;
   if (!roomMonsterId) {
@@ -67,6 +92,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   let leveledUp = false;
   let levelsGained = 0;
   let droppedItems = [];
+  let droppedMaterials = [];
   let completedQuests = [];
 
   if (result.victory) {
@@ -86,6 +112,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     db.prepare('UPDATE room_monsters SET is_alive = 0, respawn_at = ? WHERE id = ?').run(respawnAt, roomMonster.room_monster_id);
 
     droppedItems = rollDrops(character.id, roomMonster.id);
+    droppedMaterials = rollMaterialDrops(character.id, roomMonster.id);
     completedQuests = progressKillQuests(character.id, roomMonster.id);
 
     if (character.tutorial_step === 2) {
@@ -119,6 +146,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     leveledUp,
     levelsGained,
     droppedItems,
+    droppedMaterials,
     completedQuests,
     character: serializeCharacter(updated),
   });

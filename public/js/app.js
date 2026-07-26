@@ -250,6 +250,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-admin') loadAdminPanel();
       if (btn.dataset.panel === 'panel-news') loadNewsFeed();
       if (btn.dataset.panel === 'panel-tower') loadTowerPanel();
+      if (btn.dataset.panel === 'panel-crafting') loadCraftingPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -272,6 +273,7 @@ function renderRoom(data) {
   renderMinimap(room);
   renderWorldBossCard(worldBoss);
   renderRebirthCard(npcs);
+  renderBlacksmithCard(npcs);
 
   document.querySelectorAll('.dpad-btn').forEach(btn => {
     const dir = btn.dataset.dir;
@@ -475,6 +477,23 @@ document.getElementById('rebirth-btn').addEventListener('click', async () => {
   } catch (err) {
     showToast(err.message, true);
   }
+});
+
+function renderBlacksmithCard(npcs) {
+  const card = document.getElementById('blacksmith-card');
+  const smith = npcs && npcs.find((n) => n.npc_type === 'blacksmith');
+  if (!smith) {
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+  document.getElementById('blacksmith-icon').src = `/images/npcs/${smith.image}.svg`;
+  document.getElementById('blacksmith-name').textContent = smith.name;
+  document.getElementById('blacksmith-quote').textContent = smith.description || '';
+}
+
+document.getElementById('blacksmith-go-btn').addEventListener('click', () => {
+  document.querySelector('.nav-item[data-panel="panel-crafting"]').click();
 });
 
 async function movePlayer(direction) {
@@ -1718,6 +1737,70 @@ document.getElementById('tower-attack-btn').addEventListener('click', async () =
     showToast(err.message, true);
   }
 });
+
+// ---------- Crafting ----------
+async function loadCraftingPanel() {
+  try {
+    const [materialsData, recipesData] = await Promise.all([
+      api('/crafting/materials'),
+      api('/crafting/recipes'),
+    ]);
+    renderMaterialsGrid(materialsData.materials);
+    renderRecipesList(recipesData.recipes);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderMaterialsGrid(materials) {
+  const grid = document.getElementById('materials-grid');
+  grid.innerHTML = materials.map((m) => `
+    <div class="material-card ${m.quantity === 0 ? 'empty' : ''}">
+      <img src="/images/materials/${m.image}.svg" alt="" />
+      <div>
+        <div class="mat-name">${m.name}</div>
+        <div class="mat-qty">${m.quantity}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRecipesList(recipes) {
+  const list = document.getElementById('recipes-list');
+  list.innerHTML = '';
+  recipes.forEach((r) => {
+    const row = document.createElement('div');
+    row.className = `recipe-row ${r.craftable ? 'recipe-craftable' : ''}`;
+    const statParts = [];
+    if (r.bonus_atk) statParts.push(`+${r.bonus_atk} ATK`);
+    if (r.bonus_hp) statParts.push(`+${r.bonus_hp} HP`);
+    row.innerHTML = `
+      <div class="row-with-icon">
+        <img class="row-icon" src="/images/items/${r.item_image}.svg" alt="" />
+        <div>
+          <span class="name rarity-${r.rarity}">${r.item_name}</span> <span class="item-meta">(${r.slot}, req. Lv.${r.required_level})</span>
+          <div class="item-bonus">${statParts.join(' / ')}</div>
+          <div class="recipe-progress ${r.owned_quantity >= r.materials_needed ? 'met' : 'unmet'}">
+            ${r.material_name}: ${r.owned_quantity}/${r.materials_needed} — ${r.gold_cost.toLocaleString()} Gold
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" ${r.craftable ? '' : 'disabled'}>Craft</button>
+    `;
+    row.querySelector('button').addEventListener('click', async () => {
+      try {
+        const data = await api('/crafting/craft', { method: 'POST', body: JSON.stringify({ itemTemplateId: r.item_template_id }) });
+        state.character = data.character;
+        updateTopBar();
+        showToast(`Crafted ${r.item_name}!`);
+        loadCraftingPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+    list.appendChild(row);
+  });
+}
 
 // ---------- Go ----------
 boot();

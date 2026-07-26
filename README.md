@@ -200,6 +200,23 @@ Everyone shares the same world, monsters, and leaderboard.
   kills per floor for all 100 floors (`exp_reward = floorExpNeeded / 25`),
   same self-consistent formula approach used to fix the main reward curve
   - no boss cliffs, just a steady, predictable long-haul grind.
+- **Crafting (The Blacksmith):** three full 8-piece gear sets - Forged
+  (Lv.15), Runic (Lv.30), Voidforged (Lv.45) - one piece per equipment
+  slot per tier, 24 items total. Monsters in the appropriate zones (tier
+  15 → Angelio St./City Hospital, tier 30 → Underworks/Blacksite/
+  Docklands, tier 45 → The Zhul Breach) drop **slot-specific crafting
+  materials**, not the finished gear directly - Talk to **The Blacksmith**
+  (Main St.'s Town Square, alongside the Rebirth Elder) to spend materials
+  + gold crafting the exact piece you're missing, rather than hoping
+  for the right drop out of 8 possibilities. Materials stack (a separate
+  `character_materials` table, since regular equipment is one row per
+  instance and was never built to stack). Item stats and material/gold
+  costs are 100% formula-driven from tier level, not hand-picked per item -
+  same consistency approach as the reward-rebalancing fix. Deliberately
+  capped below the unique dungeon/boss-exclusive rewards (like Zhul's
+  Blessing) even at a full 8-piece set, so crafting is a strong, reliable
+  path to gear rather than a replacement for the one-off legendary chase
+  items.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

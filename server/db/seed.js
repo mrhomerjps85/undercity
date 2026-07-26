@@ -554,6 +554,119 @@ function seed() {
   }
 
   // ---------------------------------------------------------------------
+  // CRAFTING - three full 8-piece "Array" sets (level 15/30/45), each slot obtained by
+  // farming slot-specific materials from monsters in the appropriate zones, then crafting
+  // the exact piece you want at the Blacksmith rather than hoping for the right drop.
+  // Stats and material costs are formula-driven from tier level (not hand-tuned per item),
+  // same philosophy as the reward-rebalancing fix - keeps 24 items internally consistent
+  // instead of drifting the way hand-picked values did before.
+  // ---------------------------------------------------------------------
+  const insertMaterial = db.prepare(`
+    INSERT INTO crafting_materials (name, tier, slot, image, description) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(name) DO UPDATE SET name=excluded.name RETURNING id
+  `);
+
+  const CRAFT_SLOTS = [
+    { slot: 'weapon', matName: 'Blade Core', matImage: 'mat_blade_core', itemImage: 'crafted_weapon', atkMult: 0.9, hpMult: 0.3 },
+    { slot: 'chest', matName: 'Plate Fragment', matImage: 'mat_plate_fragment', itemImage: 'crafted_chest', atkMult: 0.35, hpMult: 2.8 },
+    { slot: 'head', matName: 'Helm Shard', matImage: 'mat_helm_shard', itemImage: 'crafted_head', atkMult: 0.4, hpMult: 1.8 },
+    { slot: 'hands', matName: 'Gauntlet Rivet', matImage: 'mat_gauntlet_rivet', itemImage: 'crafted_hands', atkMult: 0.45, hpMult: 1.2 },
+    { slot: 'legs', matName: 'Greave Plating', matImage: 'mat_greave_plating', itemImage: 'crafted_legs', atkMult: 0.3, hpMult: 2.4 },
+    { slot: 'boots', matName: 'Boot Sole', matImage: 'mat_boot_sole', itemImage: 'crafted_boots', atkMult: 0.35, hpMult: 1.6 },
+    { slot: 'neck', matName: 'Charm Stone', matImage: 'mat_charm_stone', itemImage: 'crafted_neck', atkMult: 0.7, hpMult: 2.2 },
+    { slot: 'shield', matName: 'Shield Boss', matImage: 'mat_shield_boss', itemImage: 'crafted_shield', atkMult: 0, hpMult: 3.6 },
+  ];
+
+  // Capped below the unique dungeon/boss-exclusive rewards (e.g. Zhul's Blessing) even at
+  // full tier - crafting should be a strong, reliable gearing-up path, not a replacement
+  // for the one-off legendary/mythic chase items.
+  const CRAFT_TIERS = [
+    { tier: 15, prefix: 'Forged', rarity: 'rare', materialsNeeded: 5, goldCost: 500 },
+    { tier: 30, prefix: 'Runic', rarity: 'epic', materialsNeeded: 8, goldCost: 2500 },
+    { tier: 45, prefix: 'Voidforged', rarity: 'legendary', materialsNeeded: 12, goldCost: 8000 },
+  ];
+
+  const craftMaterials = {};
+  const craftRecipes = []; // { itemId, materialId, materialsNeeded, goldCost, tier, slot }
+  const craftSetIds = {};
+
+  CRAFT_TIERS.forEach((tierDef) => {
+    const setId = insertSet.get(
+      `${tierDef.prefix} Array`,
+      `A full 8-piece set of ${tierDef.prefix.toLowerCase()} gear, crafted piece by piece at the Blacksmith.`
+    ).id;
+    craftSetIds[tierDef.tier] = setId;
+
+    CRAFT_SLOTS.forEach((slotDef) => {
+      const matName = `${tierDef.prefix} ${slotDef.matName}`;
+      const matId = insertMaterial.get(
+        matName, tierDef.tier, slotDef.slot, slotDef.matImage,
+        `Used at the Blacksmith to craft ${tierDef.prefix} tier ${slotDef.slot} gear.`
+      ).id;
+      craftMaterials[`${tierDef.tier}_${slotDef.slot}`] = matId;
+
+      const atk = Math.round(tierDef.tier * slotDef.atkMult);
+      const hp = Math.round(tierDef.tier * slotDef.hpMult);
+      const itemName = `${tierDef.prefix} ${slotDef.slot.charAt(0).toUpperCase() + slotDef.slot.slice(1)}`;
+      const itemId = insertItem.get(itemName, slotDef.slot, tierDef.tier, atk, hp, 0, 'crafted', 0, slotDef.itemImage).id;
+      setRarity.run(tierDef.rarity, itemId);
+      assignToSet.run(setId, itemId);
+
+      craftRecipes.push({
+        itemId, materialId: matId, materialsNeeded: tierDef.materialsNeeded,
+        goldCost: tierDef.goldCost, tier: tierDef.tier, slot: slotDef.slot,
+      });
+    });
+
+    // Full-set bonuses at 2/4/6/8 pieces, scaling with tier.
+    const u = Math.round(tierDef.tier * 0.15);
+    insertSetBonus.run(setId, 2, u, u * 3);
+    insertSetBonus.run(setId, 4, u * 2, u * 6);
+    insertSetBonus.run(setId, 6, u * 3, u * 9);
+    insertSetBonus.run(setId, 8, u * 5, u * 15);
+  });
+
+  const insertRecipe = db.prepare(`
+    INSERT INTO crafting_recipes (item_template_id, material_id, materials_needed, gold_cost) VALUES (?, ?, ?, ?)
+    ON CONFLICT(item_template_id) DO UPDATE SET
+      material_id = excluded.material_id, materials_needed = excluded.materials_needed, gold_cost = excluded.gold_cost
+  `);
+  craftRecipes.forEach((r) => {
+    insertRecipe.run(r.itemId, r.materialId, r.materialsNeeded, r.goldCost);
+  });
+
+  // Every non-boss monster in a tier's zone(s) can drop any of that tier's 8 materials -
+  // simpler than hand-curating which monster drops which specific material, and still
+  // gives the "farm the zone, gradually collect what you need" feel. Smaller monster pools
+  // (tier 45 especially) get a higher per-monster chance to compensate for fewer sources.
+  const insertMaterialDrop = db.prepare('INSERT OR IGNORE INTO monster_material_drops (monster_template_id, material_id, drop_chance) VALUES (?, ?, ?)');
+
+  function assignMaterialDrops(tier, monsterIds, chance) {
+    monsterIds.forEach((monsterId) => {
+      CRAFT_SLOTS.forEach((slotDef) => {
+        insertMaterialDrop.run(monsterId, craftMaterials[`${tier}_${slotDef.slot}`], chance);
+      });
+    });
+  }
+
+  assignMaterialDrops(15, [
+    m.cornerDealer, m.mechanic, m.bladeRunner, m.safehouseGuard, m.smuggler, m.sniper,
+    m.dogHandler, m.foreman, m.turfEnforcer, m.borderThug, m.captain, m.vileSurgeon,
+    m.nurseWraith, m.infectedPatient, m.morgueCrawler, m.ambulanceDriver, m.anesthesiologist,
+    m.labMutant, m.securityDrone,
+  ], 0.12);
+
+  assignMaterialDrops(30, [
+    m.underworksGrunt, m.underworksEnforcer, m.sewerAbomination, m.sewerCrawler, m.boneCollector,
+    m.failedExperiment, m.aiConstruct, m.cargoSmuggler, m.docksideEnforcer, m.cartelLieutenant,
+    m.harborMaster, m.broodmother, m.overseerPrototype,
+  ], 0.15);
+
+  assignMaterialDrops(45, [
+    m.riftStalker, m.zhulCultist, m.corruptedHusk, m.voidboundHorror, m.zhulHerald,
+  ], 0.2);
+
+  // ---------------------------------------------------------------------
   // QUESTS
   // ---------------------------------------------------------------------
   const insertQuest = db.prepare(`
@@ -749,6 +862,14 @@ function seed() {
     "\"You've seen everything this life has to offer, haven't you? There's another way, if you're willing to start over.\"",
     'rebirth_elder',
     'rebirth'
+  );
+
+  insertNpc.get(
+    'The Blacksmith',
+    mainStGrid['4,4'],
+    "\"Bring me what you've collected and I'll forge it into something worth wearing. No luck involved - just materials and coin.\"",
+    'blacksmith',
+    'blacksmith'
   );
 
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');

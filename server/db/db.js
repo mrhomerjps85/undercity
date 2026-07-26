@@ -252,6 +252,53 @@ CREATE TABLE IF NOT EXISTS npcs (
   FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
 
+-- Crafting material TYPES (one per slot per tier - e.g. "Forged Blade Core" is the weapon
+-- material for the level-15 tier). Not equippable, no stats - purely crafting ingredients.
+CREATE TABLE IF NOT EXISTS crafting_materials (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  tier INTEGER NOT NULL, -- 15, 30, or 45
+  slot TEXT NOT NULL,
+  image TEXT,
+  description TEXT
+);
+
+-- How many of each material a character is holding. Materials stack (unlike equipment,
+-- which is one row per instance) - this is a separate table rather than extending
+-- character_inventory specifically so the existing equip/paperdoll/tooltip code (which
+-- assumes one row = one equippable instance) never has to think about quantities at all.
+CREATE TABLE IF NOT EXISTS character_materials (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  material_id INTEGER NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (character_id) REFERENCES characters(id),
+  FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
+);
+
+-- Which monsters drop which crafting materials, and at what chance - the material
+-- equivalent of monster_drops (which is for finished equipment).
+CREATE TABLE IF NOT EXISTS monster_material_drops (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  monster_template_id INTEGER NOT NULL,
+  material_id INTEGER NOT NULL,
+  drop_chance REAL NOT NULL DEFAULT 0.1,
+  FOREIGN KEY (monster_template_id) REFERENCES monster_templates(id),
+  FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
+);
+
+-- What it costs to craft a given item at the Blacksmith - one recipe per craftable item,
+-- always a single matching material type (by design, no cross-material substitution) plus gold.
+CREATE TABLE IF NOT EXISTS crafting_recipes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_template_id INTEGER NOT NULL,
+  material_id INTEGER NOT NULL,
+  materials_needed INTEGER NOT NULL,
+  gold_cost INTEGER NOT NULL,
+  FOREIGN KEY (item_template_id) REFERENCES item_templates(id),
+  FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -342,6 +389,10 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_drops_pair ON monster_dro
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_set_bonuses_pair ON set_bonuses(set_id, pieces_required)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_world_boss_drops_pair ON world_boss_drops(world_boss_id, item_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_npcs_name ON npcs(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_materials_name ON crafting_materials(name)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_material_drops_pair ON monster_material_drops(monster_template_id, material_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_materials_pair ON character_materials(character_id, material_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_recipes_item ON crafting_recipes(item_template_id)');
 
 // ---------------------------------------------------------------------
 // Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold

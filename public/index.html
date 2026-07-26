@@ -89,6 +89,7 @@
       <button class="nav-item" data-panel="panel-leaderboard">Rankings</button>
       <button class="nav-item" data-panel="panel-news">News<span class="nav-badge hidden" id="news-badge"></span></button>
       <button class="nav-item hidden" id="tower-nav-item" data-panel="panel-tower">Ascension</button>
+      <button class="nav-item" data-panel="panel-crafting">Crafting</button>
       <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
@@ -153,6 +154,20 @@
             <div class="rebirth-footer">
               <span class="rebirth-status" id="rebirth-status"></span>
               <button class="btn-primary" id="rebirth-btn">Rebirth</button>
+            </div>
+          </div>
+
+          <div class="rebirth-card hidden" id="blacksmith-card">
+            <div class="rebirth-header">
+              <img class="rebirth-icon" id="blacksmith-icon" src="" alt="" />
+              <div>
+                <div class="rebirth-name" id="blacksmith-name">-</div>
+                <div class="rebirth-quote" id="blacksmith-quote"></div>
+              </div>
+            </div>
+            <div class="rebirth-footer">
+              <span class="rebirth-status">Craft gear from materials you've collected.</span>
+              <button class="btn-primary" id="blacksmith-go-btn">Open Forge</button>
             </div>
           </div>
 
@@ -337,6 +352,18 @@
           <li>There's no item loot in the Tower - just EXP, gold, and the permanent milestone bonuses.</li>
         </ul>
       </div>
+    </section>
+
+    <!-- CRAFTING PANEL -->
+    <section class="panel hidden" id="panel-crafting">
+      <h2 class="panel-title">Crafting</h2>
+      <p class="hint">Visit The Blacksmith (Main St.'s Town Square) to see materials drop from monsters near you. Craft the exact piece you're missing instead of hoping for the right drop.</p>
+
+      <h3 class="subheading">Your Materials</h3>
+      <div class="materials-grid" id="materials-grid"></div>
+
+      <h3 class="subheading">Recipes</h3>
+      <div class="recipes-list" id="recipes-list"></div>
     </section>
 
     <section class="panel hidden" id="panel-admin">
