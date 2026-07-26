@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
+const { getOrCreateGenerationalItem, GENERATION_KILL_SCALE } = require('../quests');
 
 const router = express.Router();
 
@@ -41,6 +42,8 @@ function getItemDropLocations(itemTemplateId, limit = 4) {
 
 // Attaches location info and a full reward-item preview (name/slot/stats/rarity/image)
 // to a raw quest row - shared by both /available and /active so the shape stays consistent.
+// The reward preview always shows the base (generation 0) item - the actual generational
+// version only gets created once the quest is genuinely completed at that generation.
 function annotateQuestExtras(q) {
   const locations = q.type === 'collect'
     ? getItemDropLocations(q.target_item_template_id)
@@ -59,23 +62,31 @@ function annotateQuestExtras(q) {
   return { ...q, locations, rewardItem };
 }
 
-// Every quest the character hasn't accepted/completed yet - including ones they don't
-// qualify for. Locked ones (level too low, or prerequisite not done) are marked with
-// `locked: true` and a `lockReason` so players can see what's coming (e.g. the dungeon
-// quest line) rather than having it simply not appear.
+// Every quest the character hasn't accepted/completed *in their current rebirth
+// generation* yet - including ones they don't qualify for. A quest completed in a PAST
+// generation shows up here again (rebirthing is what makes questing worthwhile to redo),
+// while one completed in the CURRENT generation or currently active does not.
 router.get('/available', requireAuth, requireCharacter, (req, res) => {
+  const generation = req.character.rebirth_count;
+
   const quests = db.prepare(`
     SELECT qt.*, mt.name as monster_name, it.name as item_name, zo.name as zone_name
     FROM quest_templates qt
     LEFT JOIN monster_templates mt ON mt.id = qt.target_monster_template_id
     LEFT JOIN item_templates it ON it.id = qt.target_item_template_id
     LEFT JOIN zones zo ON zo.id = qt.zone_id
-    WHERE qt.id NOT IN (SELECT quest_template_id FROM character_quests WHERE character_id = ?)
-  `).all(req.character.id);
+    WHERE qt.id NOT IN (
+      SELECT quest_template_id FROM character_quests
+      WHERE character_id = ? AND (status = 'active' OR (status = 'completed' AND generation = ?))
+    )
+  `).all(req.character.id, generation);
 
+  // Only counts a prerequisite as satisfied if it was completed in THIS generation - each
+  // rebirth means redoing the chain in order again, not skipping straight to the finale
+  // on the strength of a completion from several rebirths ago.
   const completedIds = new Set(
-    db.prepare(`SELECT quest_template_id FROM character_quests WHERE character_id = ? AND status = 'completed'`)
-      .all(req.character.id).map(r => r.quest_template_id)
+    db.prepare(`SELECT quest_template_id FROM character_quests WHERE character_id = ? AND status = 'completed' AND generation = ?`)
+      .all(req.character.id, generation).map(r => r.quest_template_id)
   );
 
   const prereqNamesById = new Map(
@@ -91,7 +102,21 @@ router.get('/available', requireAuth, requireCharacter, (req, res) => {
     } else if (!levelMet) {
       lockReason = `Requires level ${q.min_level}`;
     }
-    return annotateQuestExtras({ ...q, locked: !!lockReason, lockReason });
+    // Preview of what accepting NOW would actually require/pay, at the character's
+    // current generation - overwriting these (not adding new fields) means the existing
+    // frontend rendering, which already reads required_count/reward_exp/reward_gold,
+    // shows the correct scaled numbers with no changes needed on that side.
+    const effectiveRequiredCount = Math.ceil(q.required_count * (1 + generation * GENERATION_KILL_SCALE));
+    const scaleRatio = effectiveRequiredCount / q.required_count;
+    return annotateQuestExtras({
+      ...q,
+      locked: !!lockReason,
+      lockReason,
+      generation,
+      required_count: effectiveRequiredCount,
+      reward_exp: Math.round(q.reward_exp * scaleRatio),
+      reward_gold: Math.round(q.reward_gold * scaleRatio),
+    });
   });
 
   // Show unlocked quests first, then locked ones (sorted by level) so upcoming content is visible but out of the way.
@@ -99,19 +124,30 @@ router.get('/available', requireAuth, requireCharacter, (req, res) => {
   res.json({ quests: annotated });
 });
 
+// Only the CURRENT generation's active/completed quests - past-generation history stays
+// in the database (for the record) but doesn't clutter this list with stale entries.
 router.get('/active', requireAuth, requireCharacter, (req, res) => {
   const quests = db.prepare(`
-    SELECT cq.id as character_quest_id, cq.progress_count, cq.status, cq.completed_at,
+    SELECT cq.id as character_quest_id, cq.progress_count, cq.status, cq.completed_at, cq.generation,
+           cq.effective_required_count, cq.effective_reward_exp, cq.effective_reward_gold,
            qt.*, mt.name as monster_name, it.name as item_name, zo.name as zone_name
     FROM character_quests cq
     JOIN quest_templates qt ON qt.id = cq.quest_template_id
     LEFT JOIN monster_templates mt ON mt.id = qt.target_monster_template_id
     LEFT JOIN item_templates it ON it.id = qt.target_item_template_id
     LEFT JOIN zones zo ON zo.id = qt.zone_id
-    WHERE cq.character_id = ?
+    WHERE cq.character_id = ? AND cq.generation = ?
     ORDER BY cq.status ASC, cq.started_at DESC
-  `).all(req.character.id);
-  res.json({ quests: quests.map(annotateQuestExtras) });
+  `).all(req.character.id, req.character.rebirth_count);
+
+  res.json({
+    quests: quests.map((q) => annotateQuestExtras({
+      ...q,
+      required_count: q.effective_required_count, // the actual number that matters for this attempt
+      reward_exp: q.effective_reward_exp,
+      reward_gold: q.effective_reward_gold,
+    })),
+  });
 });
 
 router.post('/accept', requireAuth, requireCharacter, (req, res) => {
@@ -123,20 +159,64 @@ router.post('/accept', requireAuth, requireCharacter, (req, res) => {
   if (req.character.level < quest.min_level) {
     return res.status(400).json({ error: `Requires level ${quest.min_level}.` });
   }
+
+  const generation = req.character.rebirth_count;
+
   if (quest.prerequisite_quest_id) {
     const prereqDone = db.prepare(`
-      SELECT id FROM character_quests WHERE character_id = ? AND quest_template_id = ? AND status = 'completed'
-    `).get(req.character.id, quest.prerequisite_quest_id);
+      SELECT id FROM character_quests WHERE character_id = ? AND quest_template_id = ? AND status = 'completed' AND generation = ?
+    `).get(req.character.id, quest.prerequisite_quest_id, generation);
     if (!prereqDone) {
       return res.status(400).json({ error: 'You must complete the previous quest in this line first.' });
     }
   }
-  const existing = db.prepare('SELECT id FROM character_quests WHERE character_id = ? AND quest_template_id = ?').get(req.character.id, questTemplateId);
+
+  // Blocks re-accepting if already active, or already completed THIS generation - but a
+  // completion from a PAST generation (before the character's most recent rebirth) does
+  // not block a fresh attempt now.
+  const existing = db.prepare(`
+    SELECT id FROM character_quests WHERE character_id = ? AND quest_template_id = ? AND (status = 'active' OR generation = ?)
+  `).get(req.character.id, questTemplateId, generation);
   if (existing) {
     return res.status(400).json({ error: 'You already have this quest.' });
   }
 
-  db.prepare('INSERT INTO character_quests (character_id, quest_template_id) VALUES (?, ?)').run(req.character.id, questTemplateId);
+  const effectiveRequiredCount = Math.ceil(quest.required_count * (1 + generation * GENERATION_KILL_SCALE));
+
+  // Reward scales from the same "3x the target monster's reward" policy used everywhere
+  // else in the game, computed against the SCALED required count - so a harder repeat
+  // attempt pays proportionally more, not the same flat amount for more work.
+  let baseMonster = null;
+  if (quest.type === 'kill' && quest.target_monster_template_id) {
+    baseMonster = db.prepare('SELECT exp_reward, gold_reward FROM monster_templates WHERE id = ?').get(quest.target_monster_template_id);
+  } else if (quest.type === 'collect' && quest.target_item_template_id) {
+    baseMonster = db.prepare(`
+      SELECT mt.exp_reward, mt.gold_reward FROM monster_drops md
+      JOIN monster_templates mt ON mt.id = md.monster_template_id
+      WHERE md.item_template_id = ? LIMIT 1
+    `).get(quest.target_item_template_id);
+  }
+
+  let effectiveRewardExp;
+  let effectiveRewardGold;
+  if (baseMonster) {
+    effectiveRewardExp = Math.round(baseMonster.exp_reward * effectiveRequiredCount * 3);
+    effectiveRewardGold = Math.round(baseMonster.gold_reward * effectiveRequiredCount * 3);
+  } else {
+    // No monster to derive from (shouldn't normally happen) - fall back to scaling the
+    // template's own flat reward by the same ratio the required count grew by.
+    const scaleRatio = effectiveRequiredCount / quest.required_count;
+    effectiveRewardExp = Math.round(quest.reward_exp * scaleRatio);
+    effectiveRewardGold = Math.round(quest.reward_gold * scaleRatio);
+  }
+
+  const grantedItemTemplateId = getOrCreateGenerationalItem(quest.reward_item_template_id, generation);
+
+  db.prepare(`
+    INSERT INTO character_quests
+      (character_id, quest_template_id, generation, effective_required_count, effective_reward_exp, effective_reward_gold, granted_item_template_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(req.character.id, questTemplateId, generation, effectiveRequiredCount, effectiveRewardExp, effectiveRewardGold, grantedItemTemplateId);
 
   let tutorialStep = req.character.tutorial_step;
   if (tutorialStep === 3) {

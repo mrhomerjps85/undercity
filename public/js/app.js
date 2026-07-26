@@ -1348,7 +1348,7 @@ async function loadQuestTracker() {
     const row = document.createElement('div');
     row.className = 'quest-row';
     row.innerHTML = `
-      <div class="quest-name">${q.name}</div>
+      <div class="quest-name">${q.name}${q.generation > 0 ? ` <span class="item-meta">(Gen ${q.generation})</span>` : ''}</div>
       <div class="quest-desc">${q.description || ''}</div>
       <div class="quest-progress">${questObjectiveText(q)} — ${q.progress_count}/${q.required_count}</div>
       <div class="quest-progress-bar"><div class="fill" style="width:${pct}%"></div></div>
@@ -1368,7 +1368,7 @@ async function loadQuestTracker() {
     const row = document.createElement('div');
     row.className = 'quest-row' + (q.locked ? ' quest-locked' : '');
     row.innerHTML = `
-      <div class="quest-name">${q.name} <span class="item-meta">(req. Lv.${q.min_level})</span></div>
+      <div class="quest-name">${q.name}${q.generation > 0 ? ` <span class="item-meta">(Gen ${q.generation})</span>` : ''} <span class="item-meta">(req. Lv.${q.min_level})</span></div>
       <div class="quest-desc">${q.description || ''}</div>
       <div class="quest-progress">${questObjectiveText(q)}</div>
       ${questLocationText(q)}

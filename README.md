@@ -181,6 +181,20 @@ Everyone shares the same world, monsters, and leaderboard.
   **permanent** stat bonus (+3 Attack / +15 Max HP) that stacks with every
   future rebirth. Rebirth count shows on the Character sheet. No cap on how
   many times you can do it.
+- **Quests redo each rebirth:** completing a quest only marks it done for
+  your *current* rebirth generation - rebirthing makes every quest you'd
+  already finished acceptable again (tracked via `character_quests.
+  generation`, so the historical record of past completions is never
+  deleted, just no longer counted as "done" for the new generation).
+  Each redo requires **+25% more kills than the last** (compounds with
+  generation, not with itself), and pays proportionally more EXP/gold to
+  match. Quests that reward unique gear grant a genuinely new, more
+  powerful **"(Gen N)"** version of that item - not a duplicate of the
+  original - created the first time it's actually earned at that
+  generation and reused after that (+25% stats per generation, same
+  slot/rarity/set membership as the original). Prerequisite chains must
+  be redone in order each generation too - a completion from a past
+  rebirth doesn't let you skip straight to a chain's finale.
 - **Tower of Ascension:** a separate 1-100 leveling track, its own tab
   (not a walkable zone - there's no map for this one), unlocked once your
   character reaches level 10. Fight the current floor's guardian (one of

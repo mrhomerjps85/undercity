@@ -201,6 +201,21 @@ CREATE TABLE IF NOT EXISTS character_quests (
   quest_template_id INTEGER NOT NULL,
   status TEXT DEFAULT 'active', -- active | completed
   progress_count INTEGER DEFAULT 0,
+  -- Which rebirth generation this attempt belongs to (character.rebirth_count at accept
+  -- time). Completing a quest only marks it done for THIS generation - after rebirthing,
+  -- the character's rebirth_count moves past this row's generation, so the quest becomes
+  -- acceptable again without deleting the historical record of the earlier completion.
+  generation INTEGER DEFAULT 0,
+  -- required_count/rewards scale up per generation (+25% kills, proportional rewards) -
+  -- locked in at accept time so a quest's difficulty/payout doesn't shift mid-attempt.
+  effective_required_count INTEGER,
+  effective_reward_exp INTEGER,
+  effective_reward_gold INTEGER,
+  -- The item actually granted on completion - gen 0 is the original item_template_id;
+  -- gen 1+ points at a dynamically-created "(Gen N)" item with boosted stats, never the
+  -- same row as the original, so repeat completions can't grant a duplicate of the exact
+  -- same unique reward.
+  granted_item_template_id INTEGER,
   started_at TEXT DEFAULT (datetime('now')),
   completed_at TEXT,
   FOREIGN KEY (character_id) REFERENCES characters(id),
@@ -376,6 +391,35 @@ ensureColumn('characters', 'tower_level', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'tower_exp', 'INTEGER DEFAULT 0');
 ensureColumn('combat_log', 'dropped_items', 'TEXT');
 ensureColumn('combat_log', 'dropped_materials', 'TEXT');
+ensureColumn('character_quests', 'generation', 'INTEGER DEFAULT 0');
+ensureColumn('character_quests', 'effective_required_count', 'INTEGER');
+ensureColumn('character_quests', 'effective_reward_exp', 'INTEGER');
+ensureColumn('character_quests', 'effective_reward_gold', 'INTEGER');
+ensureColumn('character_quests', 'granted_item_template_id', 'INTEGER');
+
+// Existing character_quests rows (created before the rebirth-generation system existed)
+// have NULL effective_* columns - backfill them from their quest_template's original
+// values so they behave exactly as they always did, rather than showing as 0/undefined.
+db.exec(`
+  UPDATE character_quests
+  SET effective_required_count = (SELECT required_count FROM quest_templates WHERE id = character_quests.quest_template_id)
+  WHERE effective_required_count IS NULL
+`);
+db.exec(`
+  UPDATE character_quests
+  SET effective_reward_exp = (SELECT reward_exp FROM quest_templates WHERE id = character_quests.quest_template_id)
+  WHERE effective_reward_exp IS NULL
+`);
+db.exec(`
+  UPDATE character_quests
+  SET effective_reward_gold = (SELECT reward_gold FROM quest_templates WHERE id = character_quests.quest_template_id)
+  WHERE effective_reward_gold IS NULL
+`);
+db.exec(`
+  UPDATE character_quests
+  SET granted_item_template_id = (SELECT reward_item_template_id FROM quest_templates WHERE id = character_quests.quest_template_id)
+  WHERE granted_item_template_id IS NULL
+`);
 
 // Unique indexes (not table-level constraints, since these tables already exist on live
 // databases and SQLite can't ALTER TABLE to add a constraint after the fact - an index
