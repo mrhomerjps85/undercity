@@ -1916,12 +1916,14 @@ function marketRowIconAndName(l) {
       icon: `/images/items/${l.item_image}.svg`,
       label: `${l.item_name}${l.upgrade_level > 0 ? ` +${l.upgrade_level}` : ''}`,
       rarityClass: `rarity-${l.item_rarity}`,
+      statsText: bonusText(l),
     };
   }
   return {
     icon: `/images/materials/${l.material_image}.svg`,
     label: `${l.material_name} x${l.quantity}`,
     rarityClass: '',
+    statsText: '',
   };
 }
 
@@ -1935,7 +1937,7 @@ async function loadMarketBrowse() {
     }
     list.innerHTML = '';
     data.listings.forEach((l) => {
-      const { icon, label, rarityClass } = marketRowIconAndName(l);
+      const { icon, label, rarityClass, statsText } = marketRowIconAndName(l);
       const row = document.createElement('div');
       row.className = 'market-row';
       row.innerHTML = `
@@ -1943,6 +1945,7 @@ async function loadMarketBrowse() {
           <img class="row-icon" src="${icon}" alt="" />
           <div>
             <span class="name ${rarityClass}">${label}</span>
+            ${statsText ? `<div class="item-bonus">${statsText}</div>` : ''}
             <div class="market-seller">Sold by ${l.seller_name}</div>
           </div>
         </div>
@@ -1977,7 +1980,7 @@ async function loadMyListings() {
     }
     list.innerHTML = '';
     data.listings.forEach((l) => {
-      const { icon, label, rarityClass } = marketRowIconAndName(l);
+      const { icon, label, rarityClass, statsText } = marketRowIconAndName(l);
       const row = document.createElement('div');
       row.className = 'market-row';
       row.innerHTML = `
@@ -1985,6 +1988,7 @@ async function loadMyListings() {
           <img class="row-icon" src="${icon}" alt="" />
           <div>
             <span class="name ${rarityClass}">${label}</span>
+            ${statsText ? `<div class="item-bonus">${statsText}</div>` : ''}
             <div class="market-seller">${l.price.toLocaleString()} Gold <span class="market-status-tag ${l.status}">${l.status}</span></div>
           </div>
         </div>
