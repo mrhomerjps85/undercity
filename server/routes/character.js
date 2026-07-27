@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
 const {
-  computeDerivedStats, expToNextLevel, applyUpgradeMultiplier,
+  computeDerivedStats, expToNextLevel, applyUpgradeMultiplier, getCritConfig,
   REBIRTH_BONUS_ATTACK, REBIRTH_BONUS_HP,
   TOWER_MILESTONE_INTERVAL, TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
 } = require('../gameLogic');
@@ -239,6 +239,104 @@ router.post('/rebirth', requireAuth, requireCharacter, (req, res) => {
 
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
   res.json({ character: serializeCharacter(updated) });
+});
+
+// A detailed, itemized breakdown of exactly where every point of Attack/Max HP comes
+// from - built by calling the REAL computeDerivedStats formula with progressively more
+// inputs enabled and diffing each step, rather than re-deriving the formula by hand here.
+// This guarantees the breakdown can never drift out of sync with the actual calculation
+// used everywhere else, even if that formula changes later.
+router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
+  const character = req.character;
+
+  const equippedItems = db.prepare(`
+    SELECT ci.upgrade_level, it.* FROM character_inventory ci
+    JOIN item_templates it ON it.id = ci.item_template_id
+    WHERE ci.character_id = ? AND ci.equipped = 1
+  `).all(character.id);
+
+  const itemsOnly = equippedItems.reduce((acc, it) => {
+    acc.atk += applyUpgradeMultiplier(it.bonus_atk, it.upgrade_level);
+    acc.hp += applyUpgradeMultiplier(it.bonus_hp, it.upgrade_level);
+    return acc;
+  }, { atk: 0, hp: 0 });
+
+  const setCounts = {};
+  equippedItems.forEach((it) => { if (it.set_id) setCounts[it.set_id] = (setCounts[it.set_id] || 0) + 1; });
+  const setBonus = { atk: 0, hp: 0 };
+  const activeSets = [];
+  for (const [setId, count] of Object.entries(setCounts)) {
+    const tier = db.prepare('SELECT * FROM set_bonuses WHERE set_id = ? AND pieces_required <= ? ORDER BY pieces_required DESC LIMIT 1').get(setId, count);
+    if (tier) {
+      setBonus.atk += tier.bonus_atk;
+      setBonus.hp += tier.bonus_hp;
+      const setInfo = db.prepare('SELECT name FROM item_sets WHERE id = ?').get(setId);
+      activeSets.push({ name: setInfo.name, pieces: count, atk: tier.bonus_atk, hp: tier.bonus_hp });
+    }
+  }
+
+  const zero = { atk: 0, hp: 0 };
+  const withItems = { atk: itemsOnly.atk, hp: itemsOnly.hp };
+  const withItemsAndSet = { atk: itemsOnly.atk + setBonus.atk, hp: itemsOnly.hp + setBonus.hp };
+
+  const stageLevelOnly = computeDerivedStats({ level: character.level, attack_points: 0, hp_points: 0, rebirth_count: 0, tower_level: 0 }, zero);
+  const stagePoints = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: 0, tower_level: 0 }, zero);
+  const stageItems = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: 0, tower_level: 0 }, withItems);
+  const stageSet = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: 0, tower_level: 0 }, withItemsAndSet);
+  const stageRebirth = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: character.rebirth_count, tower_level: 0 }, withItemsAndSet);
+  const stageTower = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: character.rebirth_count, tower_level: character.tower_level }, withItemsAndSet);
+
+  const potionEffects = getActivePotionEffects(character.id);
+  const finalAttack = Math.round(stageTower.attack * potionEffects.atkMult);
+  const finalMaxHp = Math.round(stageTower.maxHp * potionEffects.hpMult);
+
+  const weaponRarity = getEquippedWeaponRarity(character.id);
+  const critConfig = getCritConfig(weaponRarity);
+  const baseCritChancePct = Math.round(critConfig.chance * 1000) / 10;
+  const potionCritBonusPct = potionEffects.critBonus;
+
+  res.json({
+    level: character.level,
+    base: { atk: stageLevelOnly.attack, hp: stageLevelOnly.maxHp },
+    allocatedPoints: {
+      attackPoints: character.attack_points,
+      hpPoints: character.hp_points,
+      atk: stagePoints.attack - stageLevelOnly.attack,
+      hp: stagePoints.maxHp - stageLevelOnly.maxHp,
+    },
+    equipment: {
+      items: itemsOnly,
+      setBonus,
+      activeSets,
+      atk: stageSet.attack - stagePoints.attack,
+      hp: stageSet.maxHp - stagePoints.maxHp,
+    },
+    rebirth: {
+      count: character.rebirth_count || 0,
+      atk: stageRebirth.attack - stageSet.attack,
+      hp: stageRebirth.maxHp - stageSet.maxHp,
+    },
+    tower: {
+      floor: character.tower_level || 0,
+      milestonesReached: Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL),
+      atk: stageTower.attack - stageRebirth.attack,
+      hp: stageTower.maxHp - stageRebirth.maxHp,
+    },
+    potions: {
+      atkMult: potionEffects.atkMult,
+      hpMult: potionEffects.hpMult,
+      atk: finalAttack - stageTower.attack,
+      hp: finalMaxHp - stageTower.maxHp,
+    },
+    final: { atk: finalAttack, hp: finalMaxHp },
+    crit: {
+      weaponRarity,
+      baseChancePct: baseCritChancePct,
+      multiplier: critConfig.multiplier,
+      potionBonusPct: potionCritBonusPct,
+      effectiveChancePct: Math.round((baseCritChancePct + potionCritBonusPct) * 10) / 10,
+    },
+  });
 });
 
 module.exports = { router, serializeCharacter, getEquippedBonuses, getActiveSetInfo, getEquippedWeaponRarity };

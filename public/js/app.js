@@ -710,7 +710,7 @@ document.getElementById('combat-close').addEventListener('click', () => {
 });
 
 // ---------- Character sheet ----------
-function renderCharacterSheet() {
+async function renderCharacterSheet() {
   const c = state.character;
   const sheet = document.getElementById('char-sheet');
   sheet.innerHTML = `
@@ -725,15 +725,18 @@ function renderCharacterSheet() {
   note.textContent = 'Attack and HP increase automatically every level.';
   sheet.appendChild(note);
 
-  renderBonusBreakdown();
+  try {
+    const breakdown = await api('/character/stat-breakdown');
+    renderFullBonusBreakdown(breakdown);
+    renderCombatInfo(breakdown);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+  renderActivePotions();
   loadCombatHistory();
 }
 
-function renderBonusBreakdown() {
-  const c = state.character;
-  const rb = c.rebirth_bonus || { atk: 0, hp: 0 };
-  const tb = c.tower_bonus || { atk: 0, hp: 0, milestonesReached: 0 };
-
+function renderFullBonusBreakdown(b) {
   let box = document.getElementById('bonus-breakdown-box');
   if (!box) {
     box = document.createElement('div');
@@ -742,23 +745,80 @@ function renderBonusBreakdown() {
     document.getElementById('char-sheet').insertAdjacentElement('afterend', box);
   }
 
+  const setRows = b.equipment.activeSets.map((s) => `
+    <div class="bonus-row">
+      <span class="bonus-source">&nbsp;&nbsp;${s.name} <span class="bonus-count">(${s.pieces}pc)</span></span>
+      <span class="bonus-values">+${s.atk} ATK / +${s.hp} HP</span>
+    </div>
+  `).join('');
+
   box.innerHTML = `
-    <h3 class="subheading">Permanent Bonuses</h3>
+    <h3 class="subheading">Full Stat Breakdown</h3>
     <div class="bonus-row">
-      <span class="bonus-source">Rebirth <span class="bonus-count">(${c.rebirth_count || 0}x)</span></span>
-      <span class="bonus-values">+${rb.atk} ATK / +${rb.hp} HP</span>
+      <span class="bonus-source">Base <span class="bonus-count">(level ${b.level})</span></span>
+      <span class="bonus-values">${b.base.atk} ATK / ${b.base.hp} HP</span>
     </div>
     <div class="bonus-row">
-      <span class="bonus-source">Tower of Ascension <span class="bonus-count">(${tb.milestonesReached}/10 milestones, floor ${c.tower_level || 0})</span></span>
-      <span class="bonus-values">+${tb.atk} ATK / +${tb.hp} HP</span>
+      <span class="bonus-source">Allocated Points <span class="bonus-count">(${b.allocatedPoints.attackPoints} ATK pts, ${b.allocatedPoints.hpPoints} HP pts)</span></span>
+      <span class="bonus-values">+${b.allocatedPoints.atk} ATK / +${b.allocatedPoints.hp} HP</span>
     </div>
+    <div class="bonus-row">
+      <span class="bonus-source">Equipment <span class="bonus-count">(items: +${b.equipment.items.atk}/+${b.equipment.items.hp})</span></span>
+      <span class="bonus-values">+${b.equipment.atk} ATK / +${b.equipment.hp} HP</span>
+    </div>
+    ${setRows}
+    <div class="bonus-row">
+      <span class="bonus-source">Rebirth <span class="bonus-count">(${b.rebirth.count}x)</span></span>
+      <span class="bonus-values">+${b.rebirth.atk} ATK / +${b.rebirth.hp} HP</span>
+    </div>
+    <div class="bonus-row">
+      <span class="bonus-source">Tower of Ascension <span class="bonus-count">(${b.tower.milestonesReached}/10 milestones, floor ${b.tower.floor})</span></span>
+      <span class="bonus-values">+${b.tower.atk} ATK / +${b.tower.hp} HP</span>
+    </div>
+    ${b.potions.atk !== 0 || b.potions.hp !== 0 ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Active Potions</span>
+      <span class="bonus-values">+${b.potions.atk} ATK / +${b.potions.hp} HP</span>
+    </div>` : ''}
     <div class="bonus-row bonus-total">
-      <span class="bonus-source">Total permanent bonus</span>
-      <span class="bonus-values">+${rb.atk + tb.atk} ATK / +${rb.hp + tb.hp} HP</span>
+      <span class="bonus-source">Total (current)</span>
+      <span class="bonus-values">${b.final.atk} ATK / ${b.final.hp} HP</span>
     </div>
   `;
+}
 
-  renderActivePotions();
+function renderCombatInfo(b) {
+  let box = document.getElementById('combat-info-box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'combat-info-box';
+    box.className = 'bonus-breakdown-box';
+    document.getElementById('bonus-breakdown-box').insertAdjacentElement('afterend', box);
+  }
+  box.innerHTML = `
+    <h3 class="subheading">Combat Info</h3>
+    <div class="bonus-row">
+      <span class="bonus-source">Weapon Rarity</span>
+      <span class="bonus-values rarity-${b.crit.weaponRarity}">${b.crit.weaponRarity}</span>
+    </div>
+    <div class="bonus-row">
+      <span class="bonus-source">Base Crit Chance</span>
+      <span class="bonus-values">${b.crit.baseChancePct}%</span>
+    </div>
+    <div class="bonus-row">
+      <span class="bonus-source">Crit Multiplier</span>
+      <span class="bonus-values">${b.crit.multiplier}x damage</span>
+    </div>
+    ${b.crit.potionBonusPct > 0 ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Crit Elixir Bonus</span>
+      <span class="bonus-values">+${b.crit.potionBonusPct} pts</span>
+    </div>` : ''}
+    <div class="bonus-row bonus-total">
+      <span class="bonus-source">Effective Crit Chance</span>
+      <span class="bonus-values">${b.crit.effectiveChancePct}%</span>
+    </div>
+  `;
 }
 
 function renderActivePotions() {
@@ -770,7 +830,8 @@ function renderActivePotions() {
     box = document.createElement('div');
     box.id = 'active-potions-box';
     box.className = 'bonus-breakdown-box';
-    document.getElementById('bonus-breakdown-box').insertAdjacentElement('afterend', box);
+    const anchor = document.getElementById('combat-info-box') || document.getElementById('bonus-breakdown-box');
+    anchor.insertAdjacentElement('afterend', box);
   }
 
   if (buffs.length === 0) {
