@@ -53,7 +53,12 @@ function getActiveSetInfo(characterId) {
   const setIds = [...new Set(equippedItems.map(i => i.set_id))];
   return setIds.map(setId => {
     const set = db.prepare('SELECT * FROM item_sets WHERE id = ?').get(setId);
-    const totalPieces = db.prepare('SELECT COUNT(*) c FROM item_templates WHERE set_id = ?').get(setId).c;
+    // Counts distinct SLOTS the set actually occupies, not raw item_template rows - a
+    // rebirth-generational "(Gen N)" item shares its base item's set_id and slot, so
+    // counting rows directly over-counts every time a new generation gets created
+    // (server-wide, by any player), even though the set still only has as many real
+    // "positions" as it has distinct slots.
+    const totalPieces = db.prepare('SELECT COUNT(DISTINCT slot) c FROM item_templates WHERE set_id = ?').get(setId).c;
     const equippedCount = equippedItems.filter(i => i.set_id === setId).length;
     const bonusTiers = db.prepare('SELECT * FROM set_bonuses WHERE set_id = ? ORDER BY pieces_required ASC').all(setId);
     return { ...set, equippedCount, totalPieces, bonusTiers };
