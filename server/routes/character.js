@@ -298,9 +298,11 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
   const potionEffects = getActivePotionEffects(character.id);
   const skillEffects = getSkillEffects(character.id);
   const skillLevels = getCharacterSkillLevels(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
   const stageSkills = { attack: stageTower.attack + skillEffects.atkBonus, maxHp: stageTower.maxHp + skillEffects.hpBonus };
-  const finalAttack = Math.round(stageSkills.attack * potionEffects.atkMult);
-  const finalMaxHp = Math.round(stageSkills.maxHp * potionEffects.hpMult);
+  const stageClan = { attack: Math.round(stageSkills.attack * clanEffects.atkMult), maxHp: Math.round(stageSkills.maxHp * clanEffects.hpMult) };
+  const finalAttack = Math.round(stageClan.attack * potionEffects.atkMult);
+  const finalMaxHp = Math.round(stageClan.maxHp * potionEffects.hpMult);
 
   const weaponRarity = getEquippedWeaponRarity(character.id);
   const critConfig = getCritConfig(weaponRarity);
@@ -342,11 +344,17 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
       goldMult: skillEffects.goldMult,
       expMult: skillEffects.expMult,
     },
+    clan: {
+      inClan: !!character.clan_id,
+      perkPercent: character.clan_id ? Math.round((clanEffects.atkMult - 1) * 1000) / 10 : 0,
+      atk: stageClan.attack - stageSkills.attack,
+      hp: stageClan.maxHp - stageSkills.maxHp,
+    },
     potions: {
       atkMult: potionEffects.atkMult,
       hpMult: potionEffects.hpMult,
-      atk: finalAttack - stageSkills.attack,
-      hp: finalMaxHp - stageSkills.maxHp,
+      atk: finalAttack - stageClan.attack,
+      hp: finalMaxHp - stageClan.maxHp,
     },
     final: { atk: finalAttack, hp: finalMaxHp },
     crit: {

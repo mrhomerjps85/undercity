@@ -776,6 +776,16 @@ function renderFullBonusBreakdown(b) {
       <span class="bonus-source">Tower of Ascension <span class="bonus-count">(${b.tower.milestonesReached}/10 milestones, floor ${b.tower.floor})</span></span>
       <span class="bonus-values">+${b.tower.atk} ATK / +${b.tower.hp} HP</span>
     </div>
+    ${b.skills && (b.skills.atk !== 0 || b.skills.hp !== 0) ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Skills</span>
+      <span class="bonus-values">+${b.skills.atk} ATK / +${b.skills.hp} HP</span>
+    </div>` : ''}
+    ${b.clan && b.clan.inClan ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Clan Perk <span class="bonus-count">(+${b.clan.perkPercent}%)</span></span>
+      <span class="bonus-values">+${b.clan.atk} ATK / +${b.clan.hp} HP</span>
+    </div>` : ''}
     ${b.potions.atk !== 0 || b.potions.hp !== 0 ? `
     <div class="bonus-row">
       <span class="bonus-source">Active Potions</span>
@@ -810,6 +820,11 @@ function renderCombatInfo(b) {
       <span class="bonus-source">Crit Multiplier</span>
       <span class="bonus-values">${b.crit.multiplier}x damage</span>
     </div>
+    ${b.crit.skillBonusPct > 0 ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Precision Skill Bonus</span>
+      <span class="bonus-values">+${b.crit.skillBonusPct} pts</span>
+    </div>` : ''}
     ${b.crit.potionBonusPct > 0 ? `
     <div class="bonus-row">
       <span class="bonus-source">Crit Elixir Bonus</span>
