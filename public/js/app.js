@@ -352,6 +352,49 @@ function renderMinimap(room) {
 let currentWorldBossId = null;
 let worldBossCooldownUntil = 0;
 
+function renderWorldBossKillModal(logData) {
+  if (!logData || !logData.contributors || logData.contributors.length === 0) {
+    return;
+  }
+  document.getElementById('worldboss-kill-title').textContent = `${logData.bossName} - Defeated!`;
+  document.getElementById('worldboss-kill-meta').textContent = logData.killedAt
+    ? `${logData.contributors.length} contributor${logData.contributors.length > 1 ? 's' : ''} - ${timeAgo(logData.killedAt)}`
+    : `${logData.contributors.length} contributor${logData.contributors.length > 1 ? 's' : ''}`;
+
+  const sorted = [...logData.contributors].sort((a, b) => b.damageDealt - a.damageDealt);
+  const list = document.getElementById('worldboss-kill-list');
+  list.innerHTML = sorted.map((c) => `
+    <div class="wbk-row">
+      <div>
+        <div class="wbk-name">${c.characterName}</div>
+        <div class="wbk-damage">${c.damageDealt.toLocaleString()} damage (${c.damageSharePct}%)</div>
+        ${c.droppedItems.length ? `<div class="wbk-items">Dropped: ${c.droppedItems.join(', ')}</div>` : ''}
+      </div>
+      <div class="wbk-rewards">+${c.expShare.toLocaleString()} EXP<br/>+${c.goldShare.toLocaleString()} Gold</div>
+    </div>
+  `).join('');
+
+  document.getElementById('worldboss-kill-modal').classList.remove('hidden');
+}
+
+document.getElementById('worldboss-kill-modal-close').addEventListener('click', () => {
+  document.getElementById('worldboss-kill-modal').classList.add('hidden');
+});
+
+document.getElementById('worldboss-lastkill-btn').addEventListener('click', async () => {
+  if (!currentWorldBossId) return;
+  try {
+    const data = await api(`/worldboss/${currentWorldBossId}/last-kill`);
+    if (!data.log) {
+      showToast('This boss has never been defeated yet.', true);
+      return;
+    }
+    renderWorldBossKillModal(data.log);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
 function renderWorldBossCard(worldBoss) {
   const card = document.getElementById('worldboss-card');
   if (!worldBoss) {
@@ -1557,13 +1600,14 @@ function connectSocket() {
     }
   });
 
-  socket.on('world_boss_defeated', ({ worldBossId }) => {
+  socket.on('world_boss_defeated', ({ worldBossId, name, contributors }) => {
     if (worldBossId !== currentWorldBossId) return;
     document.getElementById('worldboss-status').textContent = 'Defeated - will return later.';
     const attackBtn = document.getElementById('worldboss-attack-btn');
     attackBtn.disabled = true;
     attackBtn.textContent = 'Defeated';
     updateWorldBossBar(0, 1);
+    renderWorldBossKillModal({ bossName: name, contributors });
   });
 
   socket.on('chat_history', ({ channel, messages }) => {

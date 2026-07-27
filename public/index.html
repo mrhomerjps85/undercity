@@ -136,7 +136,10 @@
             <div class="bar worldboss-bar"><div class="bar-fill" id="worldboss-fill"></div></div>
             <div class="worldboss-footer">
               <span class="worldboss-status" id="worldboss-status"></span>
-              <button class="btn-attack" id="worldboss-attack-btn">Attack</button>
+              <div>
+                <button class="btn-ghost" id="worldboss-lastkill-btn">View Last Kill</button>
+                <button class="btn-attack" id="worldboss-attack-btn">Attack</button>
+              </div>
             </div>
             <div class="worldboss-contributors hidden" id="worldboss-contributors">
               <h4 class="worldboss-contributors-title" id="worldboss-contributors-title">Top Damage</h4>
@@ -429,6 +432,15 @@
     <div class="profile-sets" id="profile-sets"></div>
     <h3 class="subheading">Equipped</h3>
     <div class="profile-equipment-grid" id="profile-equipment-grid"></div>
+  </div>
+</div>
+
+<div id="worldboss-kill-modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="modal-x" id="worldboss-kill-modal-close">&times;</button>
+    <h2 id="worldboss-kill-title">-</h2>
+    <p class="hint" id="worldboss-kill-meta"></p>
+    <div class="worldboss-kill-list" id="worldboss-kill-list"></div>
   </div>
 </div>
 

@@ -175,6 +175,17 @@ Everyone shares the same world, monsters, and leaderboard.
   Fully independent from the Kingpin (separate HP pool, drop table, and
   contribution tracking) - the whole world boss system was already
   data-driven enough that adding a second one needed zero frontend changes.
+- **World boss kill details:** the full "who got what" breakdown - damage
+  dealt, damage share %, EXP/gold earned, items dropped, per contributor -
+  was already being broadcast to everyone in the room the moment a boss
+  died, but the frontend only ever destructured `{ worldBossId }` from
+  that socket payload and silently discarded the rest, showing everyone
+  a generic "Defeated" message instead. Fixed to actually use the data
+  and pop up a results modal for everyone present, not just whoever
+  landed the killing blow. Also now **persisted** (`world_boss_kill_log`)
+  so it's not just a fleeting live moment - a "View Last Kill" button on
+  the boss card fetches and shows the same breakdown for the most recent
+  kill at any time afterward.
 - **Prestige (rebirth):** at level 50, talk to **The Rebirth Elder** (Main
   St.'s Town Square) to reset back to level 1 - keeping your gold and
   inventory, but resetting allocated stat points - in exchange for a small

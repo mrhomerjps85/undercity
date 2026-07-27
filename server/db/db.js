@@ -404,6 +404,23 @@ CREATE TABLE IF NOT EXISTS world_boss_drops (
   FOREIGN KEY (world_boss_id) REFERENCES world_bosses(id),
   FOREIGN KEY (item_template_id) REFERENCES item_templates(id)
 );
+
+-- One row per boss kill, recording the full contributor breakdown (JSON: characterName,
+-- damageDealt, damageSharePct, expGained, goldGained, droppedItems per person) so "who got
+-- what" is answerable after the fact, not just visible transiently to whoever landed the
+-- killing blow. contributors_json is denormalized on purpose - this is a historical record
+-- of exactly what was granted at the time, not something that should change if e.g. a
+-- character is later renamed or deleted.
+CREATE TABLE IF NOT EXISTS world_boss_kill_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  world_boss_id INTEGER NOT NULL,
+  boss_name TEXT NOT NULL,
+  generation INTEGER NOT NULL,
+  killed_at TEXT DEFAULT (datetime('now')),
+  total_damage INTEGER NOT NULL,
+  contributors_json TEXT NOT NULL,
+  FOREIGN KEY (world_boss_id) REFERENCES world_bosses(id)
+);
 `);
 
 // ---------------------------------------------------------------------

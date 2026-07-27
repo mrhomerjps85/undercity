@@ -183,11 +183,26 @@ function distributeRewardsAndRespawn(boss) {
       }
     });
 
-    return { characterId: c.character_id, characterName: character ? character.name : 'Unknown', expShare, goldShare, droppedItems };
+    return {
+      characterId: c.character_id,
+      characterName: character ? character.name : 'Unknown',
+      damageDealt: c.damage_dealt,
+      damageSharePct: Math.round(share * 1000) / 10, // one decimal place
+      expShare,
+      goldShare,
+      droppedItems,
+    };
   });
 
   const respawnAt = new Date(Date.now() + boss.respawn_seconds * 1000).toISOString();
   db.prepare('UPDATE world_bosses SET is_alive = 0, respawn_at = ? WHERE id = ?').run(respawnAt, boss.id);
+
+  // Persisted so "who got what" is answerable after the fact too, not just visible live
+  // to whoever's watching when it happens.
+  db.prepare(`
+    INSERT INTO world_boss_kill_log (world_boss_id, boss_name, generation, total_damage, contributors_json)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(boss.id, boss.name, boss.generation, totalDamage, JSON.stringify(results));
 
   const io = getIO();
   if (io) {
@@ -196,5 +211,25 @@ function distributeRewardsAndRespawn(boss) {
 
   return results;
 }
+
+// Most recent completed kill for a given boss - lets a player look back at "who got what"
+// after the fact, not just live via the socket broadcast at the moment it happens.
+router.get('/:bossId/last-kill', requireAuth, requireCharacter, (req, res) => {
+  const log = db.prepare(`
+    SELECT * FROM world_boss_kill_log WHERE world_boss_id = ? ORDER BY id DESC LIMIT 1
+  `).get(req.params.bossId);
+  if (!log) {
+    return res.json({ log: null });
+  }
+  res.json({
+    log: {
+      bossName: log.boss_name,
+      generation: log.generation,
+      killedAt: log.killed_at,
+      totalDamage: log.total_damage,
+      contributors: JSON.parse(log.contributors_json),
+    },
+  });
+});
 
 module.exports = { router, getBossForRoom, serializeBoss };
