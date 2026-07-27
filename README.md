@@ -275,6 +275,20 @@ Everyone shares the same world, monsters, and leaderboard.
   are distributed per-contributor at boss-death time (not per-hit), so
   each contributor's *own* active EXP/Gold potions apply to their share,
   not a single shared multiplier.
+- **Skills:** the permanent counterpart to Potions - "gold for permanent
+  power" instead of "gold for temporary power," its own tab, 5 skills each
+  independently levelable to a cap of 25: Attack Mastery (+50 ATK at level
+  1, +25 more per level), Fortitude Training (+250 Max HP at level 1, +125
+  more per level), Precision (+0.6 percentage points crit chance per
+  level), Wealth (+1% Gold from kills per level), and Wisdom (+1% EXP from
+  kills per level). Cost escalates sharply per level (`5000 * level²`) -
+  maxing a single skill to level 25 costs roughly 27.6M cumulative gold, a
+  genuine long-term sink for players sitting on Marketplace/Crafting
+  wealth. Stacks with Potions multiplicatively for the %-based skills
+  (Wealth/Wisdom/Precision) and additively for the flat ones
+  (Attack/Fortitude), applied consistently across every combat path the
+  same way Potions are - including World Boss reward distribution, where
+  each contributor's own skill levels apply to their own share.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item
@@ -308,7 +322,21 @@ Everyone shares the same world, monsters, and leaderboard.
   by slot so you're not scrolling through everything at once. Only shows
   `source: 'shop'` items — dungeon
   and quest-exclusive gear never appears here.
-- **Clans:** create or join a clan, see the roster.
+- **Clans (expanded):** the foundation for future clan-based content
+  (Raids planned next). Three roles - Leader, Officer, Member - with
+  Leaders able to promote/demote and kick anyone, Officers able to kick
+  regular Members only (not each other or the Leader). Clans **level up**
+  from a shared XP pool - 10% of every member's EXP gain (from regular
+  combat, the Tower, or World Bosses) also feeds the clan's total, so an
+  active clan grows meaningfully faster than any solo grind would. Each
+  clan level grants every member a small permanent **%ATK/%HP/%Gold
+  perk** (+0.5% per level) and raises the **member cap** (10 base, +2
+  every 2 levels). A **Vault** lets any member deposit gold or unequipped
+  items - items use the same delete-and-recreate pattern as Marketplace
+  listings, so a deposited item cleanly leaves the depositor's inventory
+  and a fresh row is created for whoever it's later assigned to - and the
+  Leader/Officers can assign vault contents to specific members, rather
+  than a free-for-all withdraw.
 - **Leaderboard:** ranks all characters by level/EXP.
 - **Artwork:** monsters, items, and zones use real icon art (not placeholder
   emoji) — 52 SVG icons pulled from [game-icons.net](https://game-icons.net)

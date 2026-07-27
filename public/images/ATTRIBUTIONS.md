@@ -167,3 +167,8 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | potion_attack.svg | round-bottom-flask | lorc |
 | potion_gold.svg | coins-pile | delapouite |
 | potion_exp.svg | star-swirl | lorc |
+| skill_attack.svg | mailed-fist | lorc |
+| skill_fortitude.svg | stone-tower | lorc |
+| skill_precision.svg | target-arrows | lorc |
+| skill_wealth.svg | gold-bar | willdabeast |
+| skill_wisdom.svg | open-book | lorc |

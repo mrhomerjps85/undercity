@@ -21,6 +21,7 @@ const newsRoutes = require('./routes/news');
 const towerRoutes = require('./routes/tower');
 const craftingRoutes = require('./routes/crafting');
 const marketplaceRoutes = require('./routes/marketplace');
+const skillsRoutes = require('./routes/skills');
 const socketLayer = require('./socket');
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/tower', towerRoutes);
 app.use('/api/crafting', craftingRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/skills', skillsRoutes);
 
 const httpServer = http.createServer(app);
 socketLayer.init(httpServer, sessionMiddleware);

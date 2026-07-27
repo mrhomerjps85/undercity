@@ -3,6 +3,8 @@ const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
 const { computeDerivedStats, computeWorldBossDamage, WORLD_BOSS_ATTACK_COOLDOWN_SECONDS, applyExpGain } = require('../gameLogic');
 const { getActivePotionEffects } = require('../potions');
+const { getSkillEffects } = require('../skills');
+const { getClanPerkEffects, contributeClanXp } = require('../clans');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -102,9 +104,11 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const bonuses = getEquippedBonuses(req.character.id);
   const derived = computeDerivedStats(req.character, bonuses);
   const potionEffects = getActivePotionEffects(req.character.id);
+  const skillEffects = getSkillEffects(req.character.id);
+  const clanEffects = getClanPerkEffects(req.character.clan_id);
   const weaponRarity = getEquippedWeaponRarity(req.character.id);
-  const boostedAttack = Math.round(derived.attack * potionEffects.atkMult);
-  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, boss.defense, weaponRarity, potionEffects.critBonus);
+  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
+  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, boss.defense, weaponRarity, potionEffects.critBonus + skillEffects.critBonus);
   const newHp = Math.max(0, boss.current_hp - damage);
   const now = new Date().toISOString();
 
@@ -163,15 +167,18 @@ function distributeRewardsAndRespawn(boss) {
   const results = contributions.map(c => {
     const share = c.damage_dealt / totalDamage;
     const potionEffects = getActivePotionEffects(c.character_id);
-    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share * potionEffects.expMult));
-    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share * potionEffects.goldMult));
-
+    const skillEffects = getSkillEffects(c.character_id);
     const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(c.character_id);
+    const clanEffects = getClanPerkEffects(character ? character.clan_id : null);
+    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share * skillEffects.expMult * potionEffects.expMult));
+    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult));
+
     if (character) {
       const updatedChar = { ...character };
       applyExpGain(updatedChar, expShare);
       db.prepare('UPDATE characters SET exp = ?, level = ?, attack_points = ?, hp_points = ?, gold = gold + ? WHERE id = ?')
         .run(updatedChar.exp, updatedChar.level, updatedChar.attack_points, updatedChar.hp_points, goldShare, character.id);
+      contributeClanXp(character.clan_id, expShare);
     }
 
     const droppedItems = [];

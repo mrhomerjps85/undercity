@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS clans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT UNIQUE NOT NULL,
   leader_character_id INTEGER,
+  clan_level INTEGER DEFAULT 1,
+  clan_xp INTEGER DEFAULT 0,
+  vault_gold INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -356,6 +359,35 @@ CREATE TABLE IF NOT EXISTS character_active_buffs (
   FOREIGN KEY (character_id) REFERENCES characters(id)
 );
 
+-- One row per (character, skill_type) - the permanent counterpart to potions. Where a
+-- potion is "gold for temporary power," a skill is "gold for permanent power" - leveled up
+-- one level at a time with an escalating gold cost, capped at 25 per skill. The catalog
+-- (magnitude-per-level formula, cost formula, max level) lives in code
+-- (server/skills.js), not a database table, same reasoning as the potion catalog.
+CREATE TABLE IF NOT EXISTS character_skills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  skill_type TEXT NOT NULL, -- attack | fortitude | precision | wealth | wisdom
+  level INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+
+-- Depositing an item removes it from character_inventory and creates a row here (same
+-- delete-and-recreate pattern already used for Marketplace listings) - the Leader/Officers
+-- can then assign a vault item to a specific member, which deletes the vault row and
+-- creates a fresh character_inventory row for them. Not a free-for-all withdraw - the
+-- point is the leadership can direct rewards to whoever earned them.
+CREATE TABLE IF NOT EXISTS clan_vault_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  clan_id INTEGER NOT NULL,
+  item_template_id INTEGER NOT NULL,
+  upgrade_level INTEGER DEFAULT 0,
+  donated_by_name TEXT,
+  donated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (clan_id) REFERENCES clans(id),
+  FOREIGN KEY (item_template_id) REFERENCES item_templates(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -453,6 +485,18 @@ ensureColumn('character_quests', 'effective_required_count', 'INTEGER');
 ensureColumn('character_quests', 'effective_reward_exp', 'INTEGER');
 ensureColumn('character_quests', 'effective_reward_gold', 'INTEGER');
 ensureColumn('character_quests', 'granted_item_template_id', 'INTEGER');
+ensureColumn('characters', 'clan_role', "TEXT DEFAULT 'member'"); // 'leader' | 'officer' | 'member'
+ensureColumn('clans', 'clan_level', 'INTEGER DEFAULT 1');
+ensureColumn('clans', 'clan_xp', 'INTEGER DEFAULT 0');
+ensureColumn('clans', 'vault_gold', 'INTEGER DEFAULT 0');
+
+// Existing clan leaders (from before roles existed) need their role backfilled - otherwise
+// a clan created before this update would have a leader_character_id but nobody actually
+// holding the 'leader' role, locking that clan out of leader-only actions.
+db.exec(`
+  UPDATE characters SET clan_role = 'leader'
+  WHERE id IN (SELECT leader_character_id FROM clans WHERE leader_character_id IS NOT NULL)
+`);
 
 // Existing character_quests rows (created before the rebirth-generation system existed)
 // have NULL effective_* columns - backfill them from their quest_template's original
@@ -499,6 +543,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_material_drops_pair ON mo
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_materials_pair ON character_materials(character_id, material_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_recipes_item ON crafting_recipes(item_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_active_buffs_pair ON character_active_buffs(character_id, potion_type)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_skills_pair ON character_skills(character_id, skill_type)');
 
 // ---------------------------------------------------------------------
 // Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold

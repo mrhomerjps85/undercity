@@ -5,6 +5,8 @@ const { computeDerivedStats, applyExpGain, resolveCombat, respawnSeconds } = req
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 const { progressKillQuests, progressCollectQuests, hasActiveCollectQuestFor } = require('../quests');
 const { getActivePotionEffects } = require('../potions');
+const { getSkillEffects } = require('../skills');
+const { getClanPerkEffects, contributeClanXp } = require('../clans');
 
 const router = express.Router();
 
@@ -81,16 +83,26 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
   const potionEffects = getActivePotionEffects(character.id);
+  const skillEffects = getSkillEffects(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
+  // Skill bonuses are flat and permanent, applied as part of the "base" stat before the
+  // potion's temporary percentage multiplier - matches how every other permanent bonus
+  // (rebirth, tower) already stacks, with potions layered on top as the final step.
   const characterStats = {
-    maxHp: Math.round(derived.maxHp * potionEffects.hpMult),
-    attack: Math.round(derived.attack * potionEffects.atkMult),
+    maxHp: Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
+    attack: Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
   };
   const weaponRarity = getEquippedWeaponRarity(character.id);
 
-  const result = resolveCombat(characterStats, roomMonster, weaponRarity, potionEffects.critBonus);
-  // EXP/gold potions apply after the fight resolves, not to the combat math itself.
-  result.expGained = Math.round(result.expGained * potionEffects.expMult);
-  result.goldGained = Math.round(result.goldGained * potionEffects.goldMult);
+  const result = resolveCombat(characterStats, roomMonster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus);
+  // EXP/gold: permanent skill multiplier and temporary potion multiplier stack
+  // multiplicatively - investing in Wisdom/Wealth and drinking the matching potion
+  // compound together rather than one overriding the other.
+  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult);
+  if (result.victory) {
+    contributeClanXp(character.clan_id, result.expGained);
+  }
 
   let leveledUp = false;
   let levelsGained = 0;

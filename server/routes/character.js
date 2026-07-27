@@ -7,6 +7,8 @@ const {
   TOWER_MILESTONE_INTERVAL, TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
 } = require('../gameLogic');
 const { getActivePotionEffects, getActiveBuffsList } = require('../potions');
+const { getClanPerkEffects } = require('../clans');
+const { getSkillEffects, getCharacterSkillLevels, SKILL_DEFINITIONS } = require('../skills');
 
 const router = express.Router();
 
@@ -81,12 +83,14 @@ function serializeCharacter(character) {
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
   const potionEffects = getActivePotionEffects(character.id);
+  const skillEffects = getSkillEffects(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
   // Potion attack/HP bonuses are percentage multipliers applied on top of the fully
-  // computed stat (gear + rebirth + tower all included), not folded into computeDerivedStats
-  // itself - keeps that function a pure, DB-free calculation and applies the temporary
-  // boost as a final step, the same way it's applied at combat time.
-  const boostedAttack = Math.round(derived.attack * potionEffects.atkMult);
-  const boostedMaxHp = Math.round(derived.maxHp * potionEffects.hpMult);
+  // computed stat (gear + rebirth + tower + skills all included), not folded into
+  // computeDerivedStats itself - keeps that function a pure, DB-free calculation and
+  // applies the temporary boost as a final step, the same way it's applied at combat time.
+  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
+  const boostedMaxHp = Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult);
   const towerMilestones = Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL);
   return {
     ...character,
@@ -292,13 +296,17 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
   const stageTower = computeDerivedStats({ level: character.level, attack_points: character.attack_points, hp_points: character.hp_points, rebirth_count: character.rebirth_count, tower_level: character.tower_level }, withItemsAndSet);
 
   const potionEffects = getActivePotionEffects(character.id);
-  const finalAttack = Math.round(stageTower.attack * potionEffects.atkMult);
-  const finalMaxHp = Math.round(stageTower.maxHp * potionEffects.hpMult);
+  const skillEffects = getSkillEffects(character.id);
+  const skillLevels = getCharacterSkillLevels(character.id);
+  const stageSkills = { attack: stageTower.attack + skillEffects.atkBonus, maxHp: stageTower.maxHp + skillEffects.hpBonus };
+  const finalAttack = Math.round(stageSkills.attack * potionEffects.atkMult);
+  const finalMaxHp = Math.round(stageSkills.maxHp * potionEffects.hpMult);
 
   const weaponRarity = getEquippedWeaponRarity(character.id);
   const critConfig = getCritConfig(weaponRarity);
   const baseCritChancePct = Math.round(critConfig.chance * 1000) / 10;
   const potionCritBonusPct = potionEffects.critBonus;
+  const skillCritBonusPct = skillEffects.critBonus;
 
   res.json({
     level: character.level,
@@ -327,19 +335,27 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
       atk: stageTower.attack - stageRebirth.attack,
       hp: stageTower.maxHp - stageRebirth.maxHp,
     },
+    skills: {
+      levels: skillLevels,
+      atk: stageSkills.attack - stageTower.attack,
+      hp: stageSkills.maxHp - stageTower.maxHp,
+      goldMult: skillEffects.goldMult,
+      expMult: skillEffects.expMult,
+    },
     potions: {
       atkMult: potionEffects.atkMult,
       hpMult: potionEffects.hpMult,
-      atk: finalAttack - stageTower.attack,
-      hp: finalMaxHp - stageTower.maxHp,
+      atk: finalAttack - stageSkills.attack,
+      hp: finalMaxHp - stageSkills.maxHp,
     },
     final: { atk: finalAttack, hp: finalMaxHp },
     crit: {
       weaponRarity,
       baseChancePct: baseCritChancePct,
       multiplier: critConfig.multiplier,
+      skillBonusPct: skillCritBonusPct,
       potionBonusPct: potionCritBonusPct,
-      effectiveChancePct: Math.round((baseCritChancePct + potionCritBonusPct) * 10) / 10,
+      effectiveChancePct: Math.round((baseCritChancePct + skillCritBonusPct + potionCritBonusPct) * 10) / 10,
     },
   });
 });

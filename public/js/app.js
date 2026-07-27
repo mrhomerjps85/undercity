@@ -252,6 +252,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-tower') loadTowerPanel();
       if (btn.dataset.panel === 'panel-crafting') loadCraftingPanel();
       if (btn.dataset.panel === 'panel-market') loadMarketPanel();
+      if (btn.dataset.panel === 'panel-skills') loadSkillsPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -1405,30 +1406,188 @@ document.querySelectorAll('.shop-subtab').forEach(btn => {
 });
 
 // ---------- Clans ----------
+async function setClanRole(characterId, role) {
+  try {
+    await api('/clans/set-role', { method: 'POST', body: JSON.stringify({ characterId: parseInt(characterId, 10), role }) });
+    showToast(`Role updated.`);
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function kickClanMember(characterId) {
+  if (!window.confirm('Remove this member from the clan?')) return;
+  try {
+    await api('/clans/kick', { method: 'POST', body: JSON.stringify({ characterId: parseInt(characterId, 10) }) });
+    showToast('Member removed.');
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function assignVaultItem(vaultItemId, itemName, members) {
+  const memberNames = members.map((m) => m.name).join(', ');
+  const targetName = window.prompt(`Assign "${itemName}" to which member? (${memberNames})`);
+  const target = members.find((m) => m.name.toLowerCase() === (targetName || '').toLowerCase());
+  if (!target) { showToast('Member not found.', true); return; }
+  try {
+    await api('/clans/vault/assign-item', { method: 'POST', body: JSON.stringify({ vaultItemId: parseInt(vaultItemId, 10), targetCharacterId: target.id }) });
+    showToast(`Assigned "${itemName}" to ${target.name}.`);
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
 async function loadClanPanel() {
   const content = document.getElementById('clan-content');
   const meData = await api('/auth/me');
   const c = meData.character;
 
   if (c.clan_id) {
-    const roster = await api(`/clans/${c.clan_id}/roster`);
+    const [infoData, roster, vault] = await Promise.all([
+      api(`/clans/${c.clan_id}/info`),
+      api(`/clans/${c.clan_id}/roster`),
+      api('/clans/vault').catch(() => ({ items: [], vaultGold: 0 })),
+    ]);
+    const clan = infoData.clan;
+    const canManage = c.clan_role === 'leader' || c.clan_role === 'officer';
+    const pct = Math.round((clan.clan_xp / clan.expToNextLevel) * 100);
+
     content.innerHTML = `
-      <p>You are in a clan.</p>
+      <div class="bonus-breakdown-box">
+        <h3 class="subheading">${clan.name} - Level ${clan.clan_level}</h3>
+        <div class="bar" style="height:10px;"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <p class="hint" style="margin-top:8px;">${clan.clan_xp.toLocaleString()}/${clan.expToNextLevel.toLocaleString()} XP &nbsp;|&nbsp; ${clan.memberCount}/${clan.memberCap} members &nbsp;|&nbsp; Perk: +${clan.perkPercent}% ATK/HP/Gold to every member</p>
+      </div>
+
+      <h3 class="subheading">Roster</h3>
       <div id="roster"></div>
-      <button class="btn-ghost" id="leave-clan-btn">Leave Clan</button>
+
+      <h3 class="subheading">Vault</h3>
+      <div class="bonus-breakdown-box">
+        <div class="bonus-row">
+          <span class="bonus-source">Gold in vault</span>
+          <span class="bonus-values">${vault.vaultGold.toLocaleString()}</span>
+        </div>
+      </div>
+      <div style="margin:10px 0; display:flex; gap:8px;">
+        <button class="btn-ghost" id="deposit-gold-btn">Deposit Gold</button>
+        ${canManage ? '<button class="btn-ghost" id="assign-gold-btn">Assign Gold to Member</button>' : ''}
+        <button class="btn-ghost" id="deposit-item-btn">Deposit Item</button>
+      </div>
+      <div id="vault-items"></div>
+
+      <button class="btn-ghost" id="leave-clan-btn" style="margin-top:16px;">Leave Clan</button>
     `;
+
     const rosterEl = document.getElementById('roster');
-    roster.members.forEach(m => {
+    roster.members.forEach((m) => {
       const row = document.createElement('div');
       row.className = 'clan-row';
-      row.innerHTML = `<span>${m.name}</span><span>Lv.${m.level}</span>`;
+      const roleTag = m.clan_role === 'leader' ? ' (Leader)' : m.clan_role === 'officer' ? ' (Officer)' : '';
+      let actions = '';
+      if (c.clan_role === 'leader' && m.id !== c.id) {
+        actions += m.clan_role === 'officer'
+          ? `<button class="btn-ghost btn-demote" data-id="${m.id}">Demote</button>`
+          : `<button class="btn-ghost btn-promote" data-id="${m.id}">Promote</button>`;
+      }
+      if (canManage && m.id !== c.id && !(c.clan_role === 'officer' && m.clan_role !== 'member')) {
+        actions += `<button class="btn-ghost btn-kick" data-id="${m.id}">Kick</button>`;
+      }
+      row.innerHTML = `<span>${m.name}${roleTag} - Lv.${m.level}</span><span>${actions}</span>`;
       rosterEl.appendChild(row);
     });
+    rosterEl.querySelectorAll('.btn-promote').forEach((btn) => btn.addEventListener('click', () => setClanRole(btn.dataset.id, 'officer')));
+    rosterEl.querySelectorAll('.btn-demote').forEach((btn) => btn.addEventListener('click', () => setClanRole(btn.dataset.id, 'member')));
+    rosterEl.querySelectorAll('.btn-kick').forEach((btn) => btn.addEventListener('click', () => kickClanMember(btn.dataset.id)));
+
+    const vaultItemsEl = document.getElementById('vault-items');
+    if (vault.items.length === 0) {
+      vaultItemsEl.innerHTML = '<p class="empty-msg">No items in the vault.</p>';
+    } else {
+      vaultItemsEl.innerHTML = '';
+      vault.items.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'market-row';
+        const statParts = [];
+        if (item.bonus_atk) statParts.push(`+${item.bonus_atk} ATK`);
+        if (item.bonus_hp) statParts.push(`+${item.bonus_hp} HP`);
+        row.innerHTML = `
+          <div class="row-with-icon">
+            <img class="row-icon" src="/images/items/${item.image}.svg" alt="" />
+            <div>
+              <span class="name rarity-${item.rarity}">${item.name}${item.upgrade_level > 0 ? ` +${item.upgrade_level}` : ''}</span>
+              <div class="item-bonus">${statParts.join(' / ')}</div>
+              <div class="market-seller">Donated by ${item.donated_by_name}</div>
+            </div>
+          </div>
+          ${canManage ? `<button class="btn-primary btn-assign-item" data-id="${item.id}" data-name="${item.name}">Assign</button>` : ''}
+        `;
+        vaultItemsEl.appendChild(row);
+      });
+      vaultItemsEl.querySelectorAll('.btn-assign-item').forEach((btn) => {
+        btn.addEventListener('click', () => assignVaultItem(btn.dataset.id, btn.dataset.name, roster.members));
+      });
+    }
+
+    document.getElementById('deposit-gold-btn').addEventListener('click', async () => {
+      const amount = window.prompt('How much gold to deposit into the vault?');
+      if (!amount) return;
+      try {
+        await api('/clans/vault/deposit-gold', { method: 'POST', body: JSON.stringify({ amount: parseInt(amount, 10) }) });
+        showToast('Gold deposited.');
+        loadClanPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    if (canManage) {
+      document.getElementById('assign-gold-btn').addEventListener('click', async () => {
+        const memberNames = roster.members.map((m) => m.name).join(', ');
+        const targetName = window.prompt(`Assign gold to which member? (${memberNames})`);
+        const target = roster.members.find((m) => m.name.toLowerCase() === (targetName || '').toLowerCase());
+        if (!target) { showToast('Member not found.', true); return; }
+        const amount = window.prompt(`How much gold to assign to ${target.name}?`);
+        if (!amount) return;
+        try {
+          await api('/clans/vault/assign-gold', { method: 'POST', body: JSON.stringify({ amount: parseInt(amount, 10), targetCharacterId: target.id }) });
+          showToast(`Assigned gold to ${target.name}.`);
+          loadClanPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+
+    document.getElementById('deposit-item-btn').addEventListener('click', async () => {
+      try {
+        const invData = await api('/inventory');
+        const unequipped = invData.items.filter((i) => !i.equipped);
+        if (unequipped.length === 0) { showToast('No unequipped items to deposit.', true); return; }
+        const itemNames = unequipped.map((i) => `${i.inventory_id}:${i.name}`).join(', ');
+        const chosen = window.prompt(`Deposit which item? Enter its inventory ID.\n(${itemNames})`);
+        if (!chosen) return;
+        await api('/clans/vault/deposit-item', { method: 'POST', body: JSON.stringify({ inventoryId: parseInt(chosen, 10) }) });
+        showToast('Item deposited into the vault.');
+        loadClanPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
     document.getElementById('leave-clan-btn').addEventListener('click', async () => {
-      const data = await api('/clans/leave', { method: 'POST' });
-      state.character = data.character;
-      if (socket) socket.emit('clan_changed');
-      loadClanPanel();
+      try {
+        const data = await api('/clans/leave', { method: 'POST' });
+        state.character = data.character;
+        if (socket) socket.emit('clan_changed');
+        loadClanPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
     });
   } else {
     const clansData = await api('/clans');
@@ -2190,6 +2349,55 @@ async function loadMyListings() {
   } catch (err) {
     showToast(err.message, true);
   }
+}
+
+// ---------- Skills ----------
+async function loadSkillsPanel() {
+  try {
+    const data = await api('/skills');
+    renderSkillsList(data.skills);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderSkillsList(skills) {
+  const list = document.getElementById('skills-list');
+  list.innerHTML = '';
+  skills.forEach((s) => {
+    const card = document.createElement('div');
+    card.className = `skill-card ${s.atCap ? 'at-cap' : ''}`;
+    const pct = Math.round((s.level / s.maxLevel) * 100);
+    const unit = s.skillType === 'wealth' || s.skillType === 'wisdom' ? '%'
+      : s.skillType === 'precision' ? ' pts crit'
+        : s.skillType === 'fortitude' ? ' HP' : ' ATK';
+
+    card.innerHTML = `
+      <img class="skill-icon" src="/images/skills/${s.image}.svg" alt="" />
+      <div class="skill-info">
+        <span class="skill-name">${s.name}</span><span class="skill-level-tag">Level ${s.level}/${s.maxLevel}${s.level > 0 ? ` — currently +${s.currentBonus}${unit}` : ''}</span>
+        <div class="skill-desc">${s.description}</div>
+        <div class="skill-progress-bar"><div class="skill-progress-fill" style="width:${pct}%"></div></div>
+        ${s.atCap ? '<div class="skill-next">Maxed out!</div>' : `<div class="skill-next">Next level: +${s.nextLevelBonus}${unit} — ${s.nextLevelCost.toLocaleString()} Gold</div>`}
+      </div>
+      <button class="btn-primary skill-upgrade-btn" ${s.atCap ? 'disabled' : ''}>${s.atCap ? 'Maxed' : `Upgrade (${s.nextLevelCost.toLocaleString()}g)`}</button>
+    `;
+    const btn = card.querySelector('.skill-upgrade-btn');
+    if (!s.atCap) {
+      btn.addEventListener('click', async () => {
+        try {
+          const data = await api('/skills/upgrade', { method: 'POST', body: JSON.stringify({ skillType: s.skillType }) });
+          state.character = data.character;
+          updateTopBar();
+          showToast(`${s.name} is now level ${data.newLevel}!`);
+          loadSkillsPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    list.appendChild(card);
+  });
 }
 
 // ---------- Go ----------

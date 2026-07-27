@@ -7,6 +7,8 @@ const {
   TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
 } = require('../gameLogic');
 const { getActivePotionEffects } = require('../potions');
+const { getSkillEffects } = require('../skills');
+const { getClanPerkEffects, contributeClanXp } = require('../clans');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -55,15 +57,23 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
   const potionEffects = getActivePotionEffects(character.id);
+  const skillEffects = getSkillEffects(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
   const weaponRarity = getEquippedWeaponRarity(character.id);
   const monster = computeTowerMonster(character.tower_level + 1);
 
   const result = resolveCombat(
-    { maxHp: Math.round(derived.maxHp * potionEffects.hpMult), attack: Math.round(derived.attack * potionEffects.atkMult) },
-    monster, weaponRarity, potionEffects.critBonus
+    {
+      maxHp: Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
+      attack: Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
+    },
+    monster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus
   );
-  result.expGained = Math.round(result.expGained * potionEffects.expMult);
-  result.goldGained = Math.round(result.goldGained * potionEffects.goldMult);
+  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult);
+  if (result.victory) {
+    contributeClanXp(character.clan_id, result.expGained);
+  }
 
   let towerLeveledUp = false;
   let milestoneHit = null;
