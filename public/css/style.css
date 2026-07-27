@@ -433,6 +433,19 @@ button {
   color: var(--gold-bright);
   border-color: var(--gold);
 }
+.market-subtab {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  padding: 7px 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.market-subtab.active {
+  color: var(--gold-bright);
+  border-color: var(--gold);
+}
 
 .minimap {
   width: 220px;
@@ -1325,6 +1338,42 @@ button {
 .recipe-progress { font-size: 12px; }
 .recipe-progress.met { color: var(--teal-bright); }
 .recipe-progress.unmet { color: var(--blood-bright); }
+
+/* ============ MARKET ============ */
+.market-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 750px;
+  margin-top: 14px;
+}
+.market-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--line);
+  padding: 10px 16px;
+}
+.market-row .row-with-icon { flex: 1; }
+.market-seller { font-size: 11px; color: var(--ink-dim); }
+.market-status-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+}
+.market-status-tag.sold { color: var(--teal-bright); border-color: var(--teal); }
+.market-status-tag.expired { color: var(--blood-bright); border-color: var(--blood); }
+.market-list-btn {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  padding: 6px 12px;
+  font-size: 11px;
+}
 .news-delete-btn { flex-shrink: 0; }
 
 /* ============ CLAN PANEL ============ */

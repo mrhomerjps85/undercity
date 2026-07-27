@@ -251,6 +251,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-news') loadNewsFeed();
       if (btn.dataset.panel === 'panel-tower') loadTowerPanel();
       if (btn.dataset.panel === 'panel-crafting') loadCraftingPanel();
+      if (btn.dataset.panel === 'panel-market') loadMarketPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -1009,6 +1010,7 @@ function renderInventoryGrid() {
           <button class="btn-ghost btn-equip">${item.equipped ? 'Unequip' : 'Equip'}</button>
           <button class="btn-ghost btn-upgrade">Upgrade</button>
           <button class="btn-ghost btn-sell">Sell (${refund}g)</button>
+          ${item.equipped ? '' : '<button class="btn-ghost btn-list-market">List on Market</button>'}
         </div>
       `;
       row.querySelector('.btn-equip').addEventListener('click', async () => {
@@ -1033,6 +1035,25 @@ function renderInventoryGrid() {
           showToast(err.message, true);
         }
       });
+      const listBtn = row.querySelector('.btn-list-market');
+      if (listBtn) {
+        listBtn.addEventListener('click', async () => {
+          const price = window.prompt(`List "${item.name}"${item.upgrade_level > 0 ? ` +${item.upgrade_level}` : ''} for how much gold?`);
+          if (!price) return;
+          const priceNum = parseInt(price, 10);
+          if (!priceNum || priceNum < 1) {
+            showToast('Enter a valid price.', true);
+            return;
+          }
+          try {
+            await api('/marketplace/list-equipment', { method: 'POST', body: JSON.stringify({ inventoryId: item.inventory_id, price: priceNum }) });
+            showToast(`Listed ${item.name} for ${priceNum} gold.`);
+            loadInventory();
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        });
+      }
     }
     grid.appendChild(row);
   });
@@ -1795,15 +1816,46 @@ async function loadCraftingPanel() {
 
 function renderMaterialsGrid(materials) {
   const grid = document.getElementById('materials-grid');
-  grid.innerHTML = materials.map((m) => `
-    <div class="material-card ${m.quantity === 0 ? 'empty' : ''}">
+  grid.innerHTML = '';
+  materials.forEach((m) => {
+    const card = document.createElement('div');
+    card.className = `material-card ${m.quantity === 0 ? 'empty' : ''}`;
+    card.innerHTML = `
       <img src="/images/materials/${m.image}.svg" alt="" />
       <div>
         <div class="mat-name">${m.name}</div>
         <div class="mat-qty">${m.quantity}</div>
+        ${m.quantity > 0 ? '<button class="market-list-btn btn-list-material">List</button>' : ''}
       </div>
-    </div>
-  `).join('');
+    `;
+    const listBtn = card.querySelector('.btn-list-material');
+    if (listBtn) {
+      listBtn.addEventListener('click', async () => {
+        const qty = window.prompt(`List how many ${m.name} (you have ${m.quantity})?`, '1');
+        if (!qty) return;
+        const qtyNum = parseInt(qty, 10);
+        if (!qtyNum || qtyNum < 1 || qtyNum > m.quantity) {
+          showToast('Enter a valid quantity.', true);
+          return;
+        }
+        const price = window.prompt(`Total price for ${qtyNum}x ${m.name}?`);
+        if (!price) return;
+        const priceNum = parseInt(price, 10);
+        if (!priceNum || priceNum < 1) {
+          showToast('Enter a valid price.', true);
+          return;
+        }
+        try {
+          await api('/marketplace/list-material', { method: 'POST', body: JSON.stringify({ materialId: m.id, quantity: qtyNum, price: priceNum }) });
+          showToast(`Listed ${qtyNum}x ${m.name} for ${priceNum} gold.`);
+          loadCraftingPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    grid.appendChild(card);
+  });
 }
 
 function renderRecipesList(recipes) {
@@ -1841,6 +1893,120 @@ function renderRecipesList(recipes) {
     });
     list.appendChild(row);
   });
+}
+
+// ---------- Market ----------
+document.querySelectorAll('#market-subtabs .market-subtab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#market-subtabs .market-subtab').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('market-browse-view').classList.toggle('hidden', btn.dataset.marketView !== 'browse');
+    document.getElementById('market-mine-view').classList.toggle('hidden', btn.dataset.marketView !== 'mine');
+    if (btn.dataset.marketView === 'mine') loadMyListings();
+  });
+});
+
+async function loadMarketPanel() {
+  await loadMarketBrowse();
+}
+
+function marketRowIconAndName(l) {
+  if (l.listing_type === 'equipment') {
+    return {
+      icon: `/images/items/${l.item_image}.svg`,
+      label: `${l.item_name}${l.upgrade_level > 0 ? ` +${l.upgrade_level}` : ''}`,
+      rarityClass: `rarity-${l.item_rarity}`,
+    };
+  }
+  return {
+    icon: `/images/materials/${l.material_image}.svg`,
+    label: `${l.material_name} x${l.quantity}`,
+    rarityClass: '',
+  };
+}
+
+async function loadMarketBrowse() {
+  try {
+    const data = await api('/marketplace/listings');
+    const list = document.getElementById('market-browse-list');
+    if (data.listings.length === 0) {
+      list.innerHTML = '<p class="empty-msg">Nothing listed right now. Be the first to sell something.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    data.listings.forEach((l) => {
+      const { icon, label, rarityClass } = marketRowIconAndName(l);
+      const row = document.createElement('div');
+      row.className = 'market-row';
+      row.innerHTML = `
+        <div class="row-with-icon">
+          <img class="row-icon" src="${icon}" alt="" />
+          <div>
+            <span class="name ${rarityClass}">${label}</span>
+            <div class="market-seller">Sold by ${l.seller_name}</div>
+          </div>
+        </div>
+        <button class="btn-primary btn-market-buy">${l.price.toLocaleString()} Gold</button>
+      `;
+      row.querySelector('.btn-market-buy').addEventListener('click', async () => {
+        if (!window.confirm(`Buy ${label} for ${l.price.toLocaleString()} gold?`)) return;
+        try {
+          const result = await api(`/marketplace/buy/${l.id}`, { method: 'POST' });
+          state.character.gold = result.goldRemaining;
+          updateTopBar();
+          showToast(`Bought ${label}!`);
+          loadMarketBrowse();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+      list.appendChild(row);
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function loadMyListings() {
+  try {
+    const data = await api('/marketplace/my-listings');
+    const list = document.getElementById('market-mine-list');
+    if (data.listings.length === 0) {
+      list.innerHTML = '<p class="empty-msg">You haven\'t listed anything yet.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    data.listings.forEach((l) => {
+      const { icon, label, rarityClass } = marketRowIconAndName(l);
+      const row = document.createElement('div');
+      row.className = 'market-row';
+      row.innerHTML = `
+        <div class="row-with-icon">
+          <img class="row-icon" src="${icon}" alt="" />
+          <div>
+            <span class="name ${rarityClass}">${label}</span>
+            <div class="market-seller">${l.price.toLocaleString()} Gold <span class="market-status-tag ${l.status}">${l.status}</span></div>
+          </div>
+        </div>
+        ${l.status === 'active' ? '<button class="btn-ghost btn-market-cancel">Cancel</button>' : ''}
+      `;
+      const cancelBtn = row.querySelector('.btn-market-cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', async () => {
+          try {
+            await api(`/marketplace/cancel/${l.id}`, { method: 'POST' });
+            showToast('Listing cancelled.');
+            loadMyListings();
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        });
+      }
+      list.appendChild(row);
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
 }
 
 // ---------- Go ----------

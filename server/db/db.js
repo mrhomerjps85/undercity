@@ -316,6 +316,32 @@ CREATE TABLE IF NOT EXISTS crafting_recipes (
   FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
 );
 
+-- Player-to-player marketplace. Listing an equipment item DELETES it from
+-- character_inventory entirely (snapshotting item_template_id/upgrade_level here instead)
+-- rather than adding an "escrowed" flag to that table - this way every existing
+-- inventory/equip/upgrade/sell query stays correct with zero changes, since a listed item
+-- simply doesn't exist there anymore until it's bought back out (or the listing is
+-- cancelled) via a fresh INSERT, the same way buying/crafting already creates new rows.
+-- Material listings instead just deduct/restore character_materials.quantity, reusing
+-- that table's existing stacking behavior.
+CREATE TABLE IF NOT EXISTS marketplace_listings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  seller_character_id INTEGER NOT NULL,
+  seller_name TEXT NOT NULL, -- snapshot so a listing still displays correctly even if the seller is later deleted
+  listing_type TEXT NOT NULL, -- 'equipment' | 'material'
+  item_template_id INTEGER, -- set for equipment listings
+  upgrade_level INTEGER DEFAULT 0, -- snapshot of the upgrade level being sold (equipment only)
+  material_id INTEGER, -- set for material listings
+  quantity INTEGER DEFAULT 1, -- units being sold (materials only - always 1 for equipment)
+  price INTEGER NOT NULL, -- total price for the whole listing, not per-unit
+  status TEXT NOT NULL DEFAULT 'active', -- active | sold | cancelled | expired
+  listed_at TEXT DEFAULT (datetime('now')),
+  resolved_at TEXT,
+  FOREIGN KEY (seller_character_id) REFERENCES characters(id),
+  FOREIGN KEY (item_template_id) REFERENCES item_templates(id),
+  FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution

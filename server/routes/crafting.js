@@ -8,7 +8,7 @@ const router = express.Router();
 // Character's current material quantities, with material metadata joined in for display.
 router.get('/materials', requireAuth, requireCharacter, (req, res) => {
   const materials = db.prepare(`
-    SELECT cm.name, cm.tier, cm.slot, cm.image, cm.description, COALESCE(chm.quantity, 0) as quantity
+    SELECT cm.id, cm.name, cm.tier, cm.slot, cm.image, cm.description, COALESCE(chm.quantity, 0) as quantity
     FROM crafting_materials cm
     LEFT JOIN character_materials chm ON chm.material_id = cm.id AND chm.character_id = ?
     ORDER BY cm.tier ASC, cm.slot ASC

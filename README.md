@@ -231,6 +231,23 @@ Everyone shares the same world, monsters, and leaderboard.
   Blessing) even at a full 8-piece set, so crafting is a strong, reliable
   path to gear rather than a replacement for the one-off legendary chase
   items.
+- **Marketplace:** a player-to-player auction house (its own tab), not
+  direct trading - list equipment or crafting materials for a gold price,
+  anyone can buy anytime without needing to coordinate being online
+  together. Every item is tradeable, including the unique dungeon/boss
+  rewards - the market decides value rather than the game excluding
+  anything. Takes a **10% cut** from the seller's proceeds on every sale
+  (a genuine gold sink - the cut leaves the economy, it isn't paid to
+  anyone). Listing equipment **deletes the row from `character_inventory`
+  entirely** rather than adding an "escrowed" flag - the item's
+  `item_template_id`/`upgrade_level` are snapshotted onto the listing, and
+  a fresh inventory row is created for whoever ends up with it (buyer, or
+  the original seller if cancelled/expired). This was a deliberate choice
+  so every existing inventory/equip/upgrade/sell query stays correct
+  without needing to be individually audited for an "is this escrowed"
+  check - a listed item just doesn't exist in that table until it's
+  resolved. Unsold listings auto-expire after 72 hours (checked lazily on
+  read, same respawn-style pattern used elsewhere, no background job).
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item
