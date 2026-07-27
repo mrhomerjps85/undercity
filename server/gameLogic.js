@@ -145,7 +145,7 @@ function getCritConfig(weaponRarity) {
 // weaponRarity ('unarmed'|'common'|...|'legendary') drives the player's crit chance/multiplier.
 // Simple deterministic-ish turn-based exchange with light randomness.
 // Returns { log: string[], victory: bool, hpRemaining, expGained, goldGained, crits }
-function resolveCombat(characterStats, monster, weaponRarity) {
+function resolveCombat(characterStats, monster, weaponRarity, critBonusPercent = 0) {
   const log = [];
   let playerHp = characterStats.maxHp;
   let monsterHp = monster.max_hp;
@@ -153,12 +153,13 @@ function resolveCombat(characterStats, monster, weaponRarity) {
   let crits = 0;
   const MAX_TURNS = 100;
   const critConfig = getCritConfig(weaponRarity);
+  const effectiveCritChance = critConfig.chance + critBonusPercent / 100;
 
   while (playerHp > 0 && monsterHp > 0 && turn < MAX_TURNS) {
     turn++;
     // Player attacks
     let playerDmg = Math.max(1, Math.round(characterStats.attack * (0.85 + Math.random() * 0.3) - monster.defense * 0.5));
-    const isCrit = Math.random() < critConfig.chance;
+    const isCrit = Math.random() < effectiveCritChance;
     if (isCrit) {
       playerDmg = Math.round(playerDmg * critConfig.multiplier);
       crits++;
@@ -257,10 +258,11 @@ function applyUpgradeMultiplier(baseValue, upgradeLevel) {
 // ---------------------------------------------------------------------
 const WORLD_BOSS_ATTACK_COOLDOWN_SECONDS = 3;
 
-function computeWorldBossDamage(attack, bossDefense, weaponRarity) {
+function computeWorldBossDamage(attack, bossDefense, weaponRarity, critBonusPercent = 0) {
   const critConfig = getCritConfig(weaponRarity);
+  const effectiveCritChance = critConfig.chance + critBonusPercent / 100;
   let damage = Math.max(1, Math.round(attack * (0.85 + Math.random() * 0.3) - bossDefense * 0.5));
-  const isCrit = Math.random() < critConfig.chance;
+  const isCrit = Math.random() < effectiveCritChance;
   if (isCrit) damage = Math.round(damage * critConfig.multiplier);
   return { damage, isCrit };
 }

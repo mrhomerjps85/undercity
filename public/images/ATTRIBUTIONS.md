@@ -162,3 +162,8 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | crafted_neck.svg | torc | cathelineau |
 | crafted_shield.svg | round-shield | willdabeast |
 | blacksmith.svg | blacksmith | delapouite |
+| potion_fortitude.svg | health-potion | delapouite |
+| potion_crit.svg | potion-of-madness | starseeker |
+| potion_attack.svg | round-bottom-flask | lorc |
+| potion_gold.svg | coins-pile | delapouite |
+| potion_exp.svg | star-swirl | lorc |

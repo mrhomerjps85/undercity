@@ -342,6 +342,20 @@ CREATE TABLE IF NOT EXISTS marketplace_listings (
   FOREIGN KEY (material_id) REFERENCES crafting_materials(id)
 );
 
+-- One row per (character, potion_type) - buying a potion upserts this row, refreshing
+-- expires_at to a fresh 5 minutes rather than stacking duration. Potion catalog itself
+-- (name/price/magnitude/image) lives in code (server/potions.js), not a database table -
+-- there are only 5 of them and they're not tradeable/storable, so a whole item_templates-
+-- style catalog would be more structure than this needs.
+CREATE TABLE IF NOT EXISTS character_active_buffs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  potion_type TEXT NOT NULL, -- crit | attack | fortitude | exp | gold
+  magnitude REAL NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -467,6 +481,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_materials_name ON crafti
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_material_drops_pair ON monster_material_drops(monster_template_id, material_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_materials_pair ON character_materials(character_id, material_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_recipes_item ON crafting_recipes(item_template_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_active_buffs_pair ON character_active_buffs(character_id, potion_type)');
 
 // ---------------------------------------------------------------------
 // Monster reward rebalancing - runs on every startup, not just once. Monster exp/gold

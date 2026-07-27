@@ -6,6 +6,7 @@ const {
   expToNextTowerLevel, TOWER_MAX_LEVEL, TOWER_MILESTONE_INTERVAL,
   TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
 } = require('../gameLogic');
+const { getActivePotionEffects } = require('../potions');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -53,10 +54,16 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
 
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
+  const potionEffects = getActivePotionEffects(character.id);
   const weaponRarity = getEquippedWeaponRarity(character.id);
   const monster = computeTowerMonster(character.tower_level + 1);
 
-  const result = resolveCombat({ maxHp: derived.maxHp, attack: derived.attack }, monster, weaponRarity);
+  const result = resolveCombat(
+    { maxHp: Math.round(derived.maxHp * potionEffects.hpMult), attack: Math.round(derived.attack * potionEffects.atkMult) },
+    monster, weaponRarity, potionEffects.critBonus
+  );
+  result.expGained = Math.round(result.expGained * potionEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * potionEffects.goldMult);
 
   let towerLeveledUp = false;
   let milestoneHit = null;

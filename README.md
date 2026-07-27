@@ -248,6 +248,22 @@ Everyone shares the same world, monsters, and leaderboard.
   check - a listed item just doesn't exist in that table until it's
   resolved. Unsold listings auto-expire after 72 hours (checked lazily on
   read, same respawn-style pattern used elsewhere, no background job).
+- **Potions:** a new Shop category (its own subtab) - 5 instant-use buffs,
+  each lasting 5 minutes: Fortitude Draught (+25% Max HP, 25k gold), Crit
+  Elixir (+15 percentage points crit chance, 28k), Battle Tonic (+20%
+  Attack, 30k), Prosperity Potion (+40% Gold from kills, 35k), and EXP
+  Elixir (+50% EXP from kills, 50k - deliberately the priciest). Buying
+  activates immediately rather than sitting in an inventory to use later -
+  simpler, and matches actually using one right before a fight. Rebuying
+  the same type refreshes the timer to a fresh 5 minutes rather than
+  stacking duration; different potion types stack freely with each other.
+  Applies consistently across all three combat paths (regular fights, the
+  Tower, world bosses) - `resolveCombat` and `computeWorldBossDamage` both
+  gained an optional `critBonusPercent` parameter, defaulting to 0 so
+  every pre-existing call site kept working unchanged. World Boss rewards
+  are distributed per-contributor at boss-death time (not per-hit), so
+  each contributor's *own* active EXP/Gold potions apply to their share,
+  not a single shared multiplier.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

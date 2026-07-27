@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
 const { computeDerivedStats, computeWorldBossDamage, WORLD_BOSS_ATTACK_COOLDOWN_SECONDS, applyExpGain } = require('../gameLogic');
+const { getActivePotionEffects } = require('../potions');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -100,8 +101,10 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
 
   const bonuses = getEquippedBonuses(req.character.id);
   const derived = computeDerivedStats(req.character, bonuses);
+  const potionEffects = getActivePotionEffects(req.character.id);
   const weaponRarity = getEquippedWeaponRarity(req.character.id);
-  const { damage, isCrit } = computeWorldBossDamage(derived.attack, boss.defense, weaponRarity);
+  const boostedAttack = Math.round(derived.attack * potionEffects.atkMult);
+  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, boss.defense, weaponRarity, potionEffects.critBonus);
   const newHp = Math.max(0, boss.current_hp - damage);
   const now = new Date().toISOString();
 
@@ -159,8 +162,9 @@ function distributeRewardsAndRespawn(boss) {
 
   const results = contributions.map(c => {
     const share = c.damage_dealt / totalDamage;
-    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share));
-    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share));
+    const potionEffects = getActivePotionEffects(c.character_id);
+    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share * potionEffects.expMult));
+    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share * potionEffects.goldMult));
 
     const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(c.character_id);
     if (character) {

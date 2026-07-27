@@ -3,6 +3,7 @@ const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
 const { MAX_UPGRADE_LEVEL, upgradeCost, attemptUpgrade } = require('../gameLogic');
 const { serializeCharacter, getActiveSetInfo } = require('./character');
+const { POTION_DEFINITIONS, buyPotion } = require('../potions');
 
 const router = express.Router();
 
@@ -205,6 +206,31 @@ router.post('/buy', requireAuth, requireCharacter, (req, res) => {
 
   db.prepare('UPDATE characters SET gold = gold - ? WHERE id = ?').run(item.price, req.character.id);
   db.prepare('INSERT INTO character_inventory (character_id, item_template_id) VALUES (?, ?)').run(req.character.id, item.id);
+
+  const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
+  res.json({ success: true, character: serializeCharacter(updated) });
+});
+
+// Potions - a new Shop category. Buying one activates it immediately (no separate
+// consumables inventory to manage) for a flat 5 minutes, refreshing if you already have
+// that same type active.
+router.get('/potions', requireAuth, requireCharacter, (req, res) => {
+  const potions = Object.entries(POTION_DEFINITIONS).map(([potionType, def]) => ({ potionType, ...def }));
+  res.json({ potions });
+});
+
+router.post('/buy-potion', requireAuth, requireCharacter, (req, res) => {
+  const { potionType } = req.body;
+  const def = POTION_DEFINITIONS[potionType];
+  if (!def) {
+    return res.status(404).json({ error: 'Unknown potion.' });
+  }
+  if (req.character.gold < def.price) {
+    return res.status(400).json({ error: `Not enough gold - need ${def.price.toLocaleString()}.` });
+  }
+
+  db.prepare('UPDATE characters SET gold = gold - ? WHERE id = ?').run(def.price, req.character.id);
+  buyPotion(req.character.id, potionType);
 
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
   res.json({ success: true, character: serializeCharacter(updated) });

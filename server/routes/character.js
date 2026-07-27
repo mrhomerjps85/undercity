@@ -6,6 +6,7 @@ const {
   REBIRTH_BONUS_ATTACK, REBIRTH_BONUS_HP,
   TOWER_MILESTONE_INTERVAL, TOWER_MILESTONE_BONUS_ATTACK, TOWER_MILESTONE_BONUS_HP,
 } = require('../gameLogic');
+const { getActivePotionEffects, getActiveBuffsList } = require('../potions');
 
 const router = express.Router();
 
@@ -74,12 +75,20 @@ function getEquippedWeaponRarity(characterId) {
 function serializeCharacter(character) {
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
+  const potionEffects = getActivePotionEffects(character.id);
+  // Potion attack/HP bonuses are percentage multipliers applied on top of the fully
+  // computed stat (gear + rebirth + tower all included), not folded into computeDerivedStats
+  // itself - keeps that function a pure, DB-free calculation and applies the temporary
+  // boost as a final step, the same way it's applied at combat time.
+  const boostedAttack = Math.round(derived.attack * potionEffects.atkMult);
+  const boostedMaxHp = Math.round(derived.maxHp * potionEffects.hpMult);
   const towerMilestones = Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL);
   return {
     ...character,
-    max_hp: derived.maxHp,
-    attack: derived.attack,
+    max_hp: boostedMaxHp,
+    attack: boostedAttack,
     exp_to_next_level: expToNextLevel(character.level),
+    active_buffs: getActiveBuffsList(character.id),
     // Broken out separately so the Character sheet can show players exactly where their
     // permanent bonuses are coming from, rather than a single opaque total.
     rebirth_bonus: {

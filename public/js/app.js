@@ -714,6 +714,36 @@ function renderBonusBreakdown() {
       <span class="bonus-values">+${rb.atk + tb.atk} ATK / +${rb.hp + tb.hp} HP</span>
     </div>
   `;
+
+  renderActivePotions();
+}
+
+function renderActivePotions() {
+  const c = state.character;
+  const buffs = c.active_buffs || [];
+
+  let box = document.getElementById('active-potions-box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'active-potions-box';
+    box.className = 'bonus-breakdown-box';
+    document.getElementById('bonus-breakdown-box').insertAdjacentElement('afterend', box);
+  }
+
+  if (buffs.length === 0) {
+    box.innerHTML = '<h3 class="subheading">Active Potions</h3><p class="hint">None active - buy some in the Shop\'s Potions category.</p>';
+    return;
+  }
+
+  box.innerHTML = `
+    <h3 class="subheading">Active Potions</h3>
+    ${buffs.map((b) => `
+      <div class="bonus-row">
+        <span class="bonus-source">${b.name}</span>
+        <span class="bonus-values">${Math.floor(b.secondsRemaining / 60)}m ${b.secondsRemaining % 60}s left</span>
+      </div>
+    `).join('')}
+  `;
 }
 
 function timeAgo(isoString) {
@@ -1155,11 +1185,18 @@ async function sellItem(item) {
 
 // ---------- Shop ----------
 let shopItemsCache = [];
+let potionsCache = [];
 let activeShopSlot = 'all';
 
 async function loadShop() {
   const data = await api('/inventory/shop');
   shopItemsCache = data.items;
+  try {
+    const potionData = await api('/inventory/potions');
+    potionsCache = potionData.potions;
+  } catch {
+    // Potions tab just won't populate if this fails - rest of the shop still works.
+  }
   if (inventoryItemsCache.length === 0) {
     // Shop may be opened before Inventory ever is - make sure we have equipped-item
     // data available so comparisons can render.
@@ -1174,6 +1211,10 @@ async function loadShop() {
 }
 
 function renderShopGrid() {
+  if (activeShopSlot === 'potions') {
+    renderPotionsGrid();
+    return;
+  }
   const grid = document.getElementById('shop-grid');
   grid.innerHTML = '';
   const items = activeShopSlot === 'all'
@@ -1211,6 +1252,37 @@ function renderShopGrid() {
         state.character = data2.character;
         updateTopBar();
         showToast(`Bought ${item.name}!`);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+    grid.appendChild(row);
+  });
+}
+
+function renderPotionsGrid() {
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = '';
+  potionsCache.forEach((p) => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <div class="row-with-icon">
+        <img class="row-icon" src="/images/potions/${p.image}.svg" alt="" />
+        <div>
+          <span class="name">${p.name}</span>
+          <div class="item-bonus">${p.description}</div>
+        </div>
+      </div>
+      <button class="btn-attack">${p.price.toLocaleString()} Gold</button>
+    `;
+    row.querySelector('button').addEventListener('click', async () => {
+      if (!window.confirm(`Buy ${p.name} for ${p.price.toLocaleString()} gold? It activates immediately.`)) return;
+      try {
+        const data = await api('/inventory/buy-potion', { method: 'POST', body: JSON.stringify({ potionType: p.potionType }) });
+        state.character = data.character;
+        updateTopBar();
+        showToast(`${p.name} activated!`);
       } catch (err) {
         showToast(err.message, true);
       }

@@ -4,6 +4,7 @@ const { requireAuth, requireCharacter } = require('../middleware');
 const { computeDerivedStats, applyExpGain, resolveCombat, respawnSeconds } = require('../gameLogic');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 const { progressKillQuests, progressCollectQuests, hasActiveCollectQuestFor } = require('../quests');
+const { getActivePotionEffects } = require('../potions');
 
 const router = express.Router();
 
@@ -79,10 +80,17 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const character = req.character;
   const bonuses = getEquippedBonuses(character.id);
   const derived = computeDerivedStats(character, bonuses);
-  const characterStats = { maxHp: derived.maxHp, attack: derived.attack };
+  const potionEffects = getActivePotionEffects(character.id);
+  const characterStats = {
+    maxHp: Math.round(derived.maxHp * potionEffects.hpMult),
+    attack: Math.round(derived.attack * potionEffects.atkMult),
+  };
   const weaponRarity = getEquippedWeaponRarity(character.id);
 
-  const result = resolveCombat(characterStats, roomMonster, weaponRarity);
+  const result = resolveCombat(characterStats, roomMonster, weaponRarity, potionEffects.critBonus);
+  // EXP/gold potions apply after the fight resolves, not to the combat math itself.
+  result.expGained = Math.round(result.expGained * potionEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * potionEffects.goldMult);
 
   let leveledUp = false;
   let levelsGained = 0;
