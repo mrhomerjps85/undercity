@@ -1915,6 +1915,7 @@ function marketRowIconAndName(l) {
     return {
       icon: `/images/items/${l.item_image}.svg`,
       label: `${l.item_name}${l.upgrade_level > 0 ? ` +${l.upgrade_level}` : ''}`,
+      meta: `(${l.slot}, req. Lv.${l.required_level})`,
       rarityClass: `rarity-${l.item_rarity}`,
       statsText: bonusText(l),
     };
@@ -1922,6 +1923,7 @@ function marketRowIconAndName(l) {
   return {
     icon: `/images/materials/${l.material_image}.svg`,
     label: `${l.material_name} x${l.quantity}`,
+    meta: '',
     rarityClass: '',
     statsText: '',
   };
@@ -1937,14 +1939,14 @@ async function loadMarketBrowse() {
     }
     list.innerHTML = '';
     data.listings.forEach((l) => {
-      const { icon, label, rarityClass, statsText } = marketRowIconAndName(l);
+      const { icon, label, meta, rarityClass, statsText } = marketRowIconAndName(l);
       const row = document.createElement('div');
       row.className = 'market-row';
       row.innerHTML = `
         <div class="row-with-icon">
           <img class="row-icon" src="${icon}" alt="" />
           <div>
-            <span class="name ${rarityClass}">${label}</span>
+            <span class="name ${rarityClass}">${label}</span> ${meta ? `<span class="item-meta">${meta}</span>` : ''}
             ${statsText ? `<div class="item-bonus">${statsText}</div>` : ''}
             <div class="market-seller">Sold by ${l.seller_name}</div>
           </div>
@@ -1980,14 +1982,14 @@ async function loadMyListings() {
     }
     list.innerHTML = '';
     data.listings.forEach((l) => {
-      const { icon, label, rarityClass, statsText } = marketRowIconAndName(l);
+      const { icon, label, meta, rarityClass, statsText } = marketRowIconAndName(l);
       const row = document.createElement('div');
       row.className = 'market-row';
       row.innerHTML = `
         <div class="row-with-icon">
           <img class="row-icon" src="${icon}" alt="" />
           <div>
-            <span class="name ${rarityClass}">${label}</span>
+            <span class="name ${rarityClass}">${label}</span> ${meta ? `<span class="item-meta">${meta}</span>` : ''}
             ${statsText ? `<div class="item-bonus">${statsText}</div>` : ''}
             <div class="market-seller">${l.price.toLocaleString()} Gold <span class="market-status-tag ${l.status}">${l.status}</span></div>
           </div>

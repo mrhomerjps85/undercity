@@ -45,7 +45,7 @@ router.get('/listings', requireAuth, requireCharacter, (req, res) => {
   const listings = db.prepare(`
     SELECT ml.*,
            it.name as item_name, it.slot, it.rarity as item_rarity, it.image as item_image,
-           it.bonus_atk, it.bonus_hp,
+           it.bonus_atk, it.bonus_hp, it.required_level,
            cm.name as material_name, cm.image as material_image
     FROM marketplace_listings ml
     LEFT JOIN item_templates it ON it.id = ml.item_template_id
@@ -62,6 +62,7 @@ router.get('/my-listings', requireAuth, requireCharacter, (req, res) => {
   const listings = db.prepare(`
     SELECT ml.*,
            it.name as item_name, it.slot, it.rarity as item_rarity, it.image as item_image,
+           it.bonus_atk, it.bonus_hp, it.required_level,
            cm.name as material_name, cm.image as material_image
     FROM marketplace_listings ml
     LEFT JOIN item_templates it ON it.id = ml.item_template_id
