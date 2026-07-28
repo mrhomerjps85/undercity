@@ -5,6 +5,7 @@ const { computeDerivedStats, computeWorldBossDamage, WORLD_BOSS_ATTACK_COOLDOWN_
 const { getActivePotionEffects } = require('../potions');
 const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp } = require('../clans');
+const { getPetEffects, rollPetDrop } = require('../pets');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -106,9 +107,10 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const potionEffects = getActivePotionEffects(req.character.id);
   const skillEffects = getSkillEffects(req.character.id);
   const clanEffects = getClanPerkEffects(req.character.clan_id);
+  const petEffects = getPetEffects(req.character.id);
   const weaponRarity = getEquippedWeaponRarity(req.character.id);
-  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
-  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, boss.defense, weaponRarity, potionEffects.critBonus + skillEffects.critBonus);
+  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus + petEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
+  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, boss.defense, weaponRarity, potionEffects.critBonus + skillEffects.critBonus + petEffects.critBonus);
   const newHp = Math.max(0, boss.current_hp - damage);
   const now = new Date().toISOString();
 
@@ -168,10 +170,11 @@ function distributeRewardsAndRespawn(boss) {
     const share = c.damage_dealt / totalDamage;
     const potionEffects = getActivePotionEffects(c.character_id);
     const skillEffects = getSkillEffects(c.character_id);
+    const petEffects = getPetEffects(c.character_id);
     const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(c.character_id);
     const clanEffects = getClanPerkEffects(character ? character.clan_id : null);
-    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share * skillEffects.expMult * potionEffects.expMult));
-    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult));
+    const expShare = Math.max(1, Math.round(boss.total_exp_reward * share * skillEffects.expMult * potionEffects.expMult * petEffects.expMult));
+    const goldShare = Math.max(1, Math.round(boss.total_gold_reward * share * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult * petEffects.goldMult));
 
     if (character) {
       const updatedChar = { ...character };
@@ -189,6 +192,7 @@ function distributeRewardsAndRespawn(boss) {
         droppedItems.push(item.name);
       }
     });
+    const droppedPet = rollPetDrop(c.character_id);
 
     return {
       characterId: c.character_id,
@@ -198,6 +202,7 @@ function distributeRewardsAndRespawn(boss) {
       expShare,
       goldShare,
       droppedItems,
+      droppedPet,
     };
   });
 

@@ -9,6 +9,7 @@ const {
 const { getActivePotionEffects } = require('../potions');
 const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp } = require('../clans');
+const { getPetEffects, rollPetDrop } = require('../pets');
 const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
 
 const router = express.Router();
@@ -59,24 +60,26 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
   const potionEffects = getActivePotionEffects(character.id);
   const skillEffects = getSkillEffects(character.id);
   const clanEffects = getClanPerkEffects(character.clan_id);
+  const petEffects = getPetEffects(character.id);
   const weaponRarity = getEquippedWeaponRarity(character.id);
   const monster = computeTowerMonster(character.tower_level + 1);
 
   const result = resolveCombat(
     {
-      maxHp: Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
-      attack: Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
+      maxHp: Math.round((derived.maxHp + skillEffects.hpBonus + petEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
+      attack: Math.round((derived.attack + skillEffects.atkBonus + petEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
     },
-    monster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus
+    monster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus + petEffects.critBonus
   );
-  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult);
-  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult);
+  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult * petEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult * petEffects.goldMult);
   if (result.victory) {
     contributeClanXp(character.clan_id, result.expGained);
   }
 
   let towerLeveledUp = false;
   let milestoneHit = null;
+  let droppedPet = null;
   const previousMilestones = Math.floor(character.tower_level / TOWER_MILESTONE_INTERVAL);
 
   if (result.victory) {
@@ -91,6 +94,7 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
 
     db.prepare('UPDATE characters SET tower_level = ?, tower_exp = ?, gold = gold + ? WHERE id = ?')
       .run(updatedTower.tower_level, updatedTower.tower_exp, result.goldGained, character.id);
+    droppedPet = rollPetDrop(character.id);
   }
 
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(character.id);
@@ -102,6 +106,7 @@ router.post('/attack', requireAuth, requireCharacter, requireTowerAccess, (req, 
     crits: result.crits,
     towerLeveledUp,
     milestoneHit,
+    droppedPet,
     character: serializeCharacter(updated),
     status: buildStatusPayload(updated),
   });

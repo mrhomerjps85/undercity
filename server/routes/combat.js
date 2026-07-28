@@ -7,6 +7,7 @@ const { progressKillQuests, progressCollectQuests, hasActiveCollectQuestFor } = 
 const { getActivePotionEffects } = require('../potions');
 const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp } = require('../clans');
+const { getPetEffects, rollPetDrop } = require('../pets');
 
 const router = express.Router();
 
@@ -87,21 +88,22 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   const potionEffects = getActivePotionEffects(character.id);
   const skillEffects = getSkillEffects(character.id);
   const clanEffects = getClanPerkEffects(character.clan_id);
+  const petEffects = getPetEffects(character.id);
   // Skill bonuses are flat and permanent, applied as part of the "base" stat before the
   // potion's temporary percentage multiplier - matches how every other permanent bonus
   // (rebirth, tower) already stacks, with potions layered on top as the final step.
   const characterStats = {
-    maxHp: Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
-    attack: Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
+    maxHp: Math.round((derived.maxHp + skillEffects.hpBonus + petEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult),
+    attack: Math.round((derived.attack + skillEffects.atkBonus + petEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult),
   };
   const weaponRarity = getEquippedWeaponRarity(character.id);
 
-  const result = resolveCombat(characterStats, roomMonster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus);
+  const result = resolveCombat(characterStats, roomMonster, weaponRarity, potionEffects.critBonus + skillEffects.critBonus + petEffects.critBonus);
   // EXP/gold: permanent skill multiplier and temporary potion multiplier stack
   // multiplicatively - investing in Wisdom/Wealth and drinking the matching potion
   // compound together rather than one overriding the other.
-  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult);
-  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult);
+  result.expGained = Math.round(result.expGained * skillEffects.expMult * potionEffects.expMult * petEffects.expMult);
+  result.goldGained = Math.round(result.goldGained * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult * petEffects.goldMult);
   if (result.victory) {
     contributeClanXp(character.clan_id, result.expGained);
   }
@@ -111,6 +113,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   let levelUpGains = null;
   let droppedItems = [];
   let droppedMaterials = [];
+  let droppedPet = null;
   let completedQuests = [];
 
   if (result.victory) {
@@ -132,6 +135,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     droppedItems = rollDrops(character.id, roomMonster.id);
     droppedMaterials = rollMaterialDrops(character.id, roomMonster.id);
     completedQuests = progressKillQuests(character.id, roomMonster.id);
+    droppedPet = rollPetDrop(character.id);
 
     if (character.tutorial_step === 2) {
       db.prepare('UPDATE characters SET tutorial_step = 3 WHERE id = ?').run(character.id);
@@ -184,6 +188,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     levelUpGains,
     droppedItems,
     droppedMaterials,
+    droppedPet,
     completedQuests,
     character: serializeCharacter(updated),
   });

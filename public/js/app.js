@@ -253,6 +253,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-crafting') loadCraftingPanel();
       if (btn.dataset.panel === 'panel-market') loadMarketPanel();
       if (btn.dataset.panel === 'panel-skills') loadSkillsPanel();
+      if (btn.dataset.panel === 'panel-pets') loadPetsPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -688,6 +689,9 @@ function showCombatModal(data) {
     }
     if (data.droppedMaterials && data.droppedMaterials.length) {
       rows.push(`<div class="cr-row"><span class="cr-label">Materials Found</span><span class="cr-value cr-material">${data.droppedMaterials.join(', ')}</span></div>`);
+    }
+    if (data.droppedPet) {
+      rows.push(`<div class="cr-row"><span class="cr-label">Pet Found!</span><span class="cr-value cr-item rarity-${data.droppedPet.rarity}">${data.droppedPet.name}</span></div>`);
     }
     if (data.completedQuests && data.completedQuests.length) {
       rows.push(`<div class="cr-row"><span class="cr-label">Quest Complete</span><span class="cr-value cr-quest">${data.completedQuests.map(q => q.questName).join(', ')}</span></div>`);
@@ -2632,6 +2636,54 @@ function renderSkillsList(skills) {
           updateTopBar();
           showToast(`${s.name} is now level ${data.newLevel}!`);
           loadSkillsPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    list.appendChild(card);
+  });
+}
+
+// ---------- Pets ----------
+async function loadPetsPanel() {
+  try {
+    const data = await api('/pets');
+    renderPetsList(data.pets, data.activePetTemplateId);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderPetsList(pets, activePetTemplateId) {
+  const list = document.getElementById('pets-list');
+  if (pets.length === 0) {
+    list.innerHTML = '<p class="empty-msg">No pets yet - keep fighting, they drop from any kill.</p>';
+    return;
+  }
+  list.innerHTML = '';
+  pets.forEach((p) => {
+    const isActive = p.id === activePetTemplateId;
+    const card = document.createElement('div');
+    card.className = `pet-card ${isActive ? 'active' : ''}`;
+    const bonusLabel = p.bonus_type === 'gold' || p.bonus_type === 'exp'
+      ? `+${p.bonus_value}% ${p.bonus_type === 'gold' ? 'Gold' : 'EXP'}`
+      : p.bonus_type === 'crit' ? `+${p.bonus_value} pts Crit` : `+${p.bonus_value} ${p.bonus_type.toUpperCase()}`;
+
+    card.innerHTML = `
+      <img class="pet-icon" src="/images/pets/${p.image}.svg" alt="" />
+      <div class="pet-name rarity-${p.rarity}">${p.name}</div>
+      <div class="pet-count">${p.rarity}${p.count > 1 ? ` &times;${p.count}` : ''}</div>
+      <div class="pet-desc">${p.description || ''}</div>
+      <div class="pet-bonus">${bonusLabel}</div>
+      ${isActive ? '<div class="pet-active-tag">ACTIVE</div>' : `<button class="btn-primary pet-activate-btn">Activate</button>`}
+    `;
+    if (!isActive) {
+      card.querySelector('.pet-activate-btn').addEventListener('click', async () => {
+        try {
+          await api('/pets/activate', { method: 'POST', body: JSON.stringify({ petTemplateId: p.id }) });
+          showToast(`${p.name} is now active!`);
+          loadPetsPanel();
         } catch (err) {
           showToast(err.message, true);
         }

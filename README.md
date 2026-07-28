@@ -293,6 +293,23 @@ Everyone shares the same world, monsters, and leaderboard.
   (Attack/Fortitude), applied consistently across every combat path the
   same way Potions are - including World Boss reward distribution, where
   each contributor's own skill levels apply to their own share.
+- **Pets:** a small collectible companion system, own tab. A separate 3%
+  chance rolls on **any** monster kill - regular combat, Tower, and World
+  Bosses alike - independent of the existing item-drop roll, giving
+  low-level grinding fresh purpose. 15 pets across all 6 rarity tiers,
+  each leaning toward one bonus category (ATK/HP/Crit/Gold/EXP) with
+  rarity determining magnitude - kept deliberately small (e.g. a mythic
+  pet grants +12% EXP or +2.5 crit points) since these are free RNG finds,
+  not a deliberate gold investment like Skills. **Only one pet can be
+  active at a time**, freely swappable from the full collection - keeps
+  it feeling like an actual collection (which ones do I have) rather
+  than another stacking stat slot. Verified live: activating a pet with
+  a +40 ATK bonus moved a character's attack from 6 to exactly 46;
+  rolling the drop function 5,000 times landed almost exactly on the
+  target 3% rate with the expected rarity weighting; a Gold-type pet's
+  +8% bonus applied precisely to a World Boss kill's reward share
+  (4,000 → 4,320). Applied consistently across every combat path and
+  reflected on the Character page's detailed stat breakdown.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

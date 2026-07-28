@@ -8,6 +8,7 @@ const {
 } = require('../gameLogic');
 const { getActivePotionEffects, getActiveBuffsList } = require('../potions');
 const { getClanPerkEffects } = require('../clans');
+const { getPetEffects } = require('../pets');
 const { getSkillEffects, getCharacterSkillLevels, SKILL_DEFINITIONS } = require('../skills');
 
 const router = express.Router();
@@ -85,12 +86,13 @@ function serializeCharacter(character) {
   const potionEffects = getActivePotionEffects(character.id);
   const skillEffects = getSkillEffects(character.id);
   const clanEffects = getClanPerkEffects(character.clan_id);
+  const petEffects = getPetEffects(character.id);
   // Potion attack/HP bonuses are percentage multipliers applied on top of the fully
   // computed stat (gear + rebirth + tower + skills all included), not folded into
   // computeDerivedStats itself - keeps that function a pure, DB-free calculation and
   // applies the temporary boost as a final step, the same way it's applied at combat time.
-  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
-  const boostedMaxHp = Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult);
+  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus + petEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
+  const boostedMaxHp = Math.round((derived.maxHp + skillEffects.hpBonus + petEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult);
   const towerMilestones = Math.floor((character.tower_level || 0) / TOWER_MILESTONE_INTERVAL);
   return {
     ...character,
@@ -299,8 +301,13 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
   const skillEffects = getSkillEffects(character.id);
   const skillLevels = getCharacterSkillLevels(character.id);
   const clanEffects = getClanPerkEffects(character.clan_id);
+  const petEffects = getPetEffects(character.id);
+  const activePet = character.active_pet_template_id
+    ? db.prepare('SELECT * FROM pet_templates WHERE id = ?').get(character.active_pet_template_id)
+    : null;
   const stageSkills = { attack: stageTower.attack + skillEffects.atkBonus, maxHp: stageTower.maxHp + skillEffects.hpBonus };
-  const stageClan = { attack: Math.round(stageSkills.attack * clanEffects.atkMult), maxHp: Math.round(stageSkills.maxHp * clanEffects.hpMult) };
+  const stagePet = { attack: stageSkills.attack + petEffects.atkBonus, maxHp: stageSkills.maxHp + petEffects.hpBonus };
+  const stageClan = { attack: Math.round(stagePet.attack * clanEffects.atkMult), maxHp: Math.round(stagePet.maxHp * clanEffects.hpMult) };
   const finalAttack = Math.round(stageClan.attack * potionEffects.atkMult);
   const finalMaxHp = Math.round(stageClan.maxHp * potionEffects.hpMult);
 
@@ -309,6 +316,7 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
   const baseCritChancePct = Math.round(critConfig.chance * 1000) / 10;
   const potionCritBonusPct = potionEffects.critBonus;
   const skillCritBonusPct = skillEffects.critBonus;
+  const petCritBonusPct = petEffects.critBonus;
 
   res.json({
     level: character.level,
@@ -344,11 +352,18 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
       goldMult: skillEffects.goldMult,
       expMult: skillEffects.expMult,
     },
+    pet: {
+      active: activePet ? { name: activePet.name, rarity: activePet.rarity, bonusType: activePet.bonus_type, bonusValue: activePet.bonus_value, image: activePet.image } : null,
+      atk: stagePet.attack - stageSkills.attack,
+      hp: stagePet.maxHp - stageSkills.maxHp,
+      goldMult: petEffects.goldMult,
+      expMult: petEffects.expMult,
+    },
     clan: {
       inClan: !!character.clan_id,
       perkPercent: character.clan_id ? Math.round((clanEffects.atkMult - 1) * 1000) / 10 : 0,
-      atk: stageClan.attack - stageSkills.attack,
-      hp: stageClan.maxHp - stageSkills.maxHp,
+      atk: stageClan.attack - stagePet.attack,
+      hp: stageClan.maxHp - stagePet.maxHp,
     },
     potions: {
       atkMult: potionEffects.atkMult,
@@ -362,8 +377,9 @@ router.get('/stat-breakdown', requireAuth, requireCharacter, (req, res) => {
       baseChancePct: baseCritChancePct,
       multiplier: critConfig.multiplier,
       skillBonusPct: skillCritBonusPct,
+      petBonusPct: petCritBonusPct,
       potionBonusPct: potionCritBonusPct,
-      effectiveChancePct: Math.round((baseCritChancePct + skillCritBonusPct + potionCritBonusPct) * 10) / 10,
+      effectiveChancePct: Math.round((baseCritChancePct + skillCritBonusPct + petCritBonusPct + potionCritBonusPct) * 10) / 10,
     },
   });
 });

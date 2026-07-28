@@ -372,6 +372,32 @@ CREATE TABLE IF NOT EXISTS character_skills (
   FOREIGN KEY (character_id) REFERENCES characters(id)
 );
 
+-- Pet catalog - like item_templates but simpler (no slot/set, no upgrade levels). Each
+-- pet leans toward one bonus category, with rarity determining magnitude - kept modest
+-- since these are free RNG finds, not a deliberate investment like Skills.
+CREATE TABLE IF NOT EXISTS pet_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  rarity TEXT NOT NULL,
+  bonus_type TEXT NOT NULL, -- atk | hp | crit | gold | exp
+  bonus_value REAL NOT NULL,
+  image TEXT,
+  description TEXT
+);
+
+-- One row per OWNED copy - duplicates are allowed and simply sit in the collection, since
+-- only ONE pet (by template) is ever active at a time regardless of how many copies of it
+-- exist. active_pet_template_id lives on characters, not here, since which copy is active
+-- is meaningless when duplicates are functionally identical.
+CREATE TABLE IF NOT EXISTS character_pets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  pet_template_id INTEGER NOT NULL,
+  obtained_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (character_id) REFERENCES characters(id),
+  FOREIGN KEY (pet_template_id) REFERENCES pet_templates(id)
+);
+
 -- Depositing an item removes it from character_inventory and creates a row here (same
 -- delete-and-recreate pattern already used for Marketplace listings) - the Leader/Officers
 -- can then assign a vault item to a specific member, which deletes the vault row and
@@ -537,6 +563,7 @@ ensureColumn('raids', 'party_max_hp', 'INTEGER');
 ensureColumn('raids', 'party_current_hp', 'INTEGER');
 ensureColumn('raids', 'current_round', 'INTEGER DEFAULT 1');
 ensureColumn('raid_participants', 'is_ready', 'INTEGER DEFAULT 0');
+ensureColumn('characters', 'active_pet_template_id', 'INTEGER');
 
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually

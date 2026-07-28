@@ -889,6 +889,27 @@ function seed() {
     'blacksmith'
   );
 
+  const insertPet = db.prepare(`
+    INSERT INTO pet_templates (name, rarity, bonus_type, bonus_value, image, description)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(name) DO UPDATE SET name=excluded.name RETURNING id
+  `);
+  insertPet.get('Sewer Rat', 'common', 'gold', 1, 'pet_sewer_rat', 'A scrappy survivor with a nose for loose change.');
+  insertPet.get('Alley Cat', 'common', 'exp', 1, 'pet_alley_cat', 'Watches you fight with a bored, judging expression.');
+  insertPet.get('Junkyard Pup', 'uncommon', 'atk', 5, 'pet_junkyard_pup', 'Barks encouragement before every swing.');
+  insertPet.get('Street Hawk', 'uncommon', 'crit', 0.3, 'pet_street_hawk', 'Circles overhead, spotting openings you would have missed.');
+  insertPet.get('Guard Mutt', 'rare', 'hp', 30, 'pet_guard_mutt', 'Stubbornly refuses to let anything land a killing blow.');
+  insertPet.get('Ember Sprite', 'rare', 'atk', 15, 'pet_ember_sprite', 'A tiny flame that rides your shoulder into battle.');
+  insertPet.get('Coin Imp', 'rare', 'gold', 3, 'pet_coin_imp', 'Steals a cut of every payout - fortunately, in your favor.');
+  insertPet.get('Owlet Familiar', 'epic', 'exp', 5, 'pet_owlet_familiar', 'Silently absorbs every lesson from every fight.');
+  insertPet.get('Iron Badger', 'epic', 'hp', 80, 'pet_iron_badger', 'Built like a tank because, functionally, it is one.');
+  insertPet.get('Void Kit', 'epic', 'crit', 1, 'pet_void_kit', 'A fox-shaped tear in reality with excellent aim.');
+  insertPet.get('Phantom Wolf', 'legendary', 'atk', 40, 'pet_phantom_wolf', 'Half-visible, fully lethal.');
+  insertPet.get('Golden Serpent', 'legendary', 'gold', 8, 'pet_golden_serpent', 'Coils around anything shiny and refuses to let go.');
+  insertPet.get('Ancient Tortoise', 'legendary', 'hp', 200, 'pet_ancient_tortoise', 'Has outlived several civilizations and most fights.');
+  insertPet.get('Starlight Fox', 'mythic', 'exp', 12, 'pet_starlight_fox', 'Trails constellations that seem to teach you something.');
+  insertPet.get("Reaper's Familiar", 'mythic', 'crit', 2.5, 'pet_reapers_familiar', 'Knows exactly where to strike. Always has.');
+
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
   console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);
