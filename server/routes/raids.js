@@ -7,7 +7,7 @@ const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp, canManageClan } = require('../clans');
 const { getEquippedBonuses } = require('./character');
 const {
-  RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_ACTIVATE,
+  RAID_BOSS, GATHERING_WINDOW_MINUTES, RECOMMENDED_PARTICIPANTS,
   getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 } = require('../raids');
 
@@ -49,7 +49,7 @@ function serializeRaid(raid) {
     createdByName: raid.created_by_name,
     gatheringExpiresAt: raid.gathering_expires_at,
     participants,
-    minParticipants: MIN_PARTICIPANTS_TO_ACTIVATE,
+    recommendedParticipants: RECOMMENDED_PARTICIPANTS,
   };
   if (raid.status === 'completed' && raid.reward_summary_json) {
     result.rewardSummary = JSON.parse(raid.reward_summary_json);
@@ -97,11 +97,12 @@ router.post('/:id/join', requireAuth, requireCharacter, (req, res) => {
   if (!raid || raid.clan_id !== req.character.clan_id) {
     return res.status(404).json({ error: 'Raid not found.' });
   }
-  // Roster locks the moment the raid activates - no joining mid-fight, since the party's
-  // HP pool is a one-time snapshot taken at activation, not something that can be cleanly
-  // topped up by a later arrival.
+  // Roster locks the moment the raid launches - no joining mid-fight, since the party's
+  // HP pool is a one-time snapshot taken at launch, not something that can be cleanly
+  // topped up by a later arrival. Any number of members can join during gathering - no
+  // fixed headcount requirement, the Leader/Officer decides when it's time to launch.
   if (raid.status !== 'gathering') {
-    return res.status(400).json({ error: raid.status === 'active' ? 'This raid has already started - the roster is locked.' : 'This raid is no longer joinable.' });
+    return res.status(400).json({ error: raid.status === 'active' ? 'This raid has already launched - the roster is locked.' : 'This raid is no longer joinable.' });
   }
   const already = db.prepare('SELECT id FROM raid_participants WHERE raid_id = ? AND character_id = ?').get(raid.id, req.character.id);
   if (already) {
@@ -111,17 +112,36 @@ router.post('/:id/join', requireAuth, requireCharacter, (req, res) => {
   db.prepare('INSERT INTO raid_participants (raid_id, character_id, character_name) VALUES (?, ?, ?)')
     .run(raid.id, req.character.id, req.character.name);
 
-  const participants = db.prepare('SELECT character_id FROM raid_participants WHERE raid_id = ?').all(raid.id);
-  if (participants.length >= MIN_PARTICIPANTS_TO_ACTIVATE) {
-    // Snapshot the party's combined Max HP right now, as the roster locks for good.
-    let partyMaxHp = 0;
-    participants.forEach((p) => {
-      const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
-      if (character) partyMaxHp += getBoostedMaxHp(character);
-    });
-    db.prepare("UPDATE raids SET status = 'active', party_max_hp = ?, party_current_hp = ? WHERE id = ?")
-      .run(partyMaxHp, partyMaxHp, raid.id);
+  const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
+  res.json({ raid: serializeRaid(updated) });
+});
+
+// The Leader/Officer decides when to launch, with however many members have joined at
+// that point - no automatic activation at a fixed headcount. This is the one moment the
+// roster locks and the party's combined Max HP gets snapshotted as the shared health bar.
+router.post('/:id/launch', requireAuth, requireCharacter, (req, res) => {
+  const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
+  if (!raid || raid.clan_id !== req.character.clan_id) {
+    return res.status(404).json({ error: 'Raid not found.' });
   }
+  if (!canManageClan(req.character)) {
+    return res.status(403).json({ error: 'Only the Leader or an Officer can launch the raid.' });
+  }
+  if (raid.status !== 'gathering') {
+    return res.status(400).json({ error: 'This raid has already launched.' });
+  }
+  const participants = db.prepare('SELECT character_id FROM raid_participants WHERE raid_id = ?').all(raid.id);
+  if (participants.length === 0) {
+    return res.status(400).json({ error: 'At least one member needs to join before launching.' });
+  }
+
+  let partyMaxHp = 0;
+  participants.forEach((p) => {
+    const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
+    if (character) partyMaxHp += getBoostedMaxHp(character);
+  });
+  db.prepare("UPDATE raids SET status = 'active', party_max_hp = ?, party_current_hp = ? WHERE id = ?")
+    .run(partyMaxHp, partyMaxHp, raid.id);
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
   res.json({ raid: serializeRaid(updated) });

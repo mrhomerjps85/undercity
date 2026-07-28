@@ -1493,13 +1493,19 @@ function renderRaidSection(el, raid, character, canManage) {
     el.innerHTML = `
       <div class="bonus-breakdown-box">
         <h4 class="subheading">${raid.bossName} - Gathering</h4>
-        <p class="hint">${raid.participants.length}/${raid.minParticipants} needed to begin. Started by ${raid.createdByName}.</p>
+        <p class="hint">${raid.participants.length} joined so far (recommended: ${raid.recommendedParticipants}+). Started by ${raid.createdByName}. The Leader or an Officer can launch whenever they're ready.</p>
         ${raid.participants.map((p) => `<div class="bonus-row"><span class="bonus-source">${p.character_name}</span></div>`).join('')}
       </div>
-      ${!alreadyJoined ? '<button class="btn-primary" id="join-raid-btn">Join Raid</button>' : '<p class="hint">You\'ve joined - waiting for more members.</p>'}
+      <div style="display:flex; gap:8px;">
+        ${!alreadyJoined ? '<button class="btn-primary" id="join-raid-btn">Join Raid</button>' : '<p class="hint">You have joined.</p>'}
+        ${canManage ? '<button class="btn-attack" id="launch-raid-btn">Launch Raid</button>' : ''}
+      </div>
     `;
     if (!alreadyJoined) {
       document.getElementById('join-raid-btn').addEventListener('click', () => joinRaid(raid.id));
+    }
+    if (canManage) {
+      document.getElementById('launch-raid-btn').addEventListener('click', () => launchRaid(raid.id));
     }
     return;
   }
@@ -1619,6 +1625,16 @@ async function joinRaid(raidId) {
   try {
     await api(`/raids/${raidId}/join`, { method: 'POST' });
     showToast('Joined the raid!');
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function launchRaid(raidId) {
+  try {
+    await api(`/raids/${raidId}/launch`, { method: 'POST' });
+    showToast('Raid launched! The roster is now locked - ready up when everyone is set.');
     loadClanPanel();
   } catch (err) {
     showToast(err.message, true);

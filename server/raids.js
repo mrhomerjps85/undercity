@@ -29,7 +29,9 @@ function computeBossDamageToParty(participantCount) {
 }
 
 const GATHERING_WINDOW_MINUTES = 60;
-const MIN_PARTICIPANTS_TO_ACTIVATE = 3;
+// No longer an enforced minimum - the Leader/Officer decides when to launch, with
+// however many members have joined. Kept purely as a suggested headcount shown in the UI.
+const RECOMMENDED_PARTICIPANTS = 3;
 
 // The exclusive Sovereign's Dominion set - resolved by name at runtime rather than storing
 // IDs here directly, since seed.js is what actually creates these rows and ID values
@@ -58,6 +60,6 @@ function expireStaleGatheringRaids() {
 }
 
 module.exports = {
-  RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_ACTIVATE,
+  RAID_BOSS, GATHERING_WINDOW_MINUTES, RECOMMENDED_PARTICIPANTS,
   getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 };

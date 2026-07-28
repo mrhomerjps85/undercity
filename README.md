@@ -342,10 +342,14 @@ Everyone shares the same world, monsters, and leaderboard.
   initial playtesting - a real departure from every other fight in the
   game (which all reset to full HP every time and can't be permanently
   lost). A Leader/Officer starts a raid against **The Rift Sovereign**,
-  which sits in **gathering** until 3+ clan members join - at that exact
-  moment the roster **locks** (no joining mid-fight) and the party's
-  combined Max HP is snapshotted as a shared health bar. Every locked-in
-  participant **Ready Up**s once, then anyone can **Start the Raid** -
+  which sits in **gathering** with no fixed headcount requirement - any
+  number of clan members can join (3+ is only a suggested guideline shown
+  in the UI, never enforced). The Leader/Officer decides when to
+  **Launch** it, whenever they want, with however many have joined at
+  that point - that's the one moment the roster **locks** (no joining
+  mid-fight) and the party's combined Max HP is snapshotted as a shared
+  health bar. Every locked-in participant **Ready Up**s once, then anyone
+  can **Start the Raid** -
   at that point the *entire* fight resolves to its conclusion in a single
   action (each member's Attack computed once, not re-queried every
   simulated round), rather than repeating the ready-up cycle every round,
