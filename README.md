@@ -322,8 +322,8 @@ Everyone shares the same world, monsters, and leaderboard.
   by slot so you're not scrolling through everything at once. Only shows
   `source: 'shop'` items — dungeon
   and quest-exclusive gear never appears here.
-- **Clans (expanded):** the foundation for future clan-based content
-  (Raids planned next). Three roles - Leader, Officer, Member - with
+- **Clans (expanded):** the foundation for clan-based content, including
+  Raids below. Three roles - Leader, Officer, Member - with
   Leaders able to promote/demote and kick anyone, Officers able to kick
   regular Members only (not each other or the Leader). Clans **level up**
   from a shared XP pool - 10% of every member's EXP gain (from regular
@@ -337,6 +337,27 @@ Everyone shares the same world, monsters, and leaderboard.
   and a fresh row is created for whoever it's later assigned to - and the
   Leader/Officers can assign vault contents to specific members, rather
   than a free-for-all withdraw.
+- **Raids:** clan-exclusive, event-based content (its own section inside
+  the Clan tab) - a genuinely different pattern from every other boss in
+  the game, which are all "anyone can wander up and help." A Leader/
+  Officer starts a raid against **The Rift Sovereign** (1.2M HP, well
+  above even The Unbound's 220k), which sits in a **gathering** state
+  until 3+ clan members have joined - only then does it auto-flip to
+  **active** and become attackable. No cooldown between raids - the
+  boss's sheer difficulty is what naturally rate-limits repeat attempts,
+  not an artificial timer. A raid that doesn't reach 3 joiners within an
+  hour quietly expires (same lazy "check on read" pattern as Marketplace
+  listings). On defeat, **every participant who actually dealt damage**
+  (joining alone doesn't count - verified live, since an early version of
+  this let two people free-ride into a guaranteed legendary item without
+  ever attacking) gets EXP/gold split by damage share, exactly like a
+  World Boss, **plus one guaranteed item** randomly drawn (with
+  replacement) from the exclusive 6-piece **Sovereign's Dominion** set -
+  not a %-chance roll, since real coordination effort already gates how
+  reliable that should feel. The reward breakdown is persisted on the
+  raid itself, so anyone who didn't land the killing blow can still see
+  exactly what everyone received afterward, not just whoever got the
+  live API response.
 - **Leaderboard:** ranks all characters by level/EXP.
 - **Artwork:** monsters, items, and zones use real icon art (not placeholder
   emoji) — 52 SVG icons pulled from [game-icons.net](https://game-icons.net)

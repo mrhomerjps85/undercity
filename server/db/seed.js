@@ -488,6 +488,17 @@ function seed() {
   // never gotten one. Not part of an existing set; a standalone legendary reward.
   it.unboundsChain = insertItem.get("The Unbound's Chain", 'neck', 50, 40, 130, 0, 'worldboss', 0, 'unbounds_chain').id;
 
+  // Sovereign's Dominion - the Raid-exclusive set, guaranteed (not %-chance) to every
+  // participant on a successful raid kill, one random piece each. Legendary rather than
+  // mythic - Zhul's Blessing stays the singular "ultimate" mythic tier, this is a strong
+  // parallel path via coordinated group content rather than a replacement for it.
+  it.sovereignsBlade = insertItem.get("Sovereign's Blade", 'weapon', 50, 45, 15, 0, 'raid', 0, 'sovereigns_blade').id;
+  it.sovereignsPlate = insertItem.get("Sovereign's Plate", 'chest', 50, 15, 140, 0, 'raid', 0, 'sovereigns_plate').id;
+  it.sovereignsCrown = insertItem.get("Sovereign's Crown", 'head', 50, 18, 90, 0, 'raid', 0, 'sovereigns_crown').id;
+  it.sovereignsGrasp = insertItem.get("Sovereign's Grasp", 'hands', 50, 20, 60, 0, 'raid', 0, 'sovereigns_grasp').id;
+  it.sovereignsGreaves = insertItem.get("Sovereign's Greaves", 'legs', 50, 15, 110, 0, 'raid', 0, 'sovereigns_greaves').id;
+  it.sovereignsStride = insertItem.get("Sovereign's Stride", 'boots', 50, 15, 75, 0, 'raid', 0, 'sovereigns_stride').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -525,6 +536,12 @@ function seed() {
   insertSetBonus.run(smugglersLegacySet, 2, 16, 45);   // any 2 pieces
   insertSetBonus.run(smugglersLegacySet, 3, 38, 95);   // full 3-piece set
 
+  const sovereignsDominionSet = insertSet.get("Sovereign's Dominion", 'A full 6-piece set torn from the Rift Sovereign - proof a clan stood together and won.').id;
+  [it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride].forEach(itemId => assignToSet.run(sovereignsDominionSet, itemId));
+  insertSetBonus.run(sovereignsDominionSet, 2, 8, 24);
+  insertSetBonus.run(sovereignsDominionSet, 4, 16, 48);
+  insertSetBonus.run(sovereignsDominionSet, 6, 30, 90);
+
   const wardensRegaliaSet = insertSet.get("Warden's Regalia", "Weapon, plate, and grip stripped from the Underworks' ruler.").id;
   [it.wardensCleaver, it.underworksPlate, it.wardensGrip].forEach(itemId => assignToSet.run(wardensRegaliaSet, itemId));
   insertSetBonus.run(wardensRegaliaSet, 2, 15, 40);   // any 2 pieces
@@ -546,7 +563,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {

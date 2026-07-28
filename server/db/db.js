@@ -388,6 +388,35 @@ CREATE TABLE IF NOT EXISTS clan_vault_items (
   FOREIGN KEY (item_template_id) REFERENCES item_templates(id)
 );
 
+-- A raid is a one-time event, not a persistent respawning boss like the world bosses -
+-- created by a clan's Leader/Officer, sits in 'gathering' until 3+ members have joined
+-- (at which point it auto-flips to 'active' and can be attacked), then 'completed' once
+-- the boss dies or 'expired' if gathering ran out the clock without enough joiners.
+CREATE TABLE IF NOT EXISTS raids (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  clan_id INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'gathering', -- gathering | active | completed | expired
+  max_hp INTEGER NOT NULL,
+  current_hp INTEGER NOT NULL,
+  created_by_name TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  gathering_expires_at TEXT NOT NULL,
+  completed_at TEXT,
+  reward_summary_json TEXT,
+  FOREIGN KEY (clan_id) REFERENCES clans(id)
+);
+
+CREATE TABLE IF NOT EXISTS raid_participants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  raid_id INTEGER NOT NULL,
+  character_id INTEGER NOT NULL,
+  character_name TEXT NOT NULL,
+  damage_dealt INTEGER DEFAULT 0,
+  last_attack_at TEXT,
+  FOREIGN KEY (raid_id) REFERENCES raids(id),
+  FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+
 -- A world boss is shared server-wide (one HP pool for everyone, not per-character combat
 -- resolved-in-one-call like regular monsters). current_hp persists across attacks from many
 -- players. generation increments every time the boss dies and respawns, so old contribution
@@ -543,6 +572,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_monster_material_drops_pair ON mo
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_materials_pair ON character_materials(character_id, material_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_recipes_item ON crafting_recipes(item_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_active_buffs_pair ON character_active_buffs(character_id, potion_type)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_raid_participants_pair ON raid_participants(raid_id, character_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_skills_pair ON character_skills(character_id, skill_type)');
 
 // ---------------------------------------------------------------------

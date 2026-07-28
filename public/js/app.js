@@ -1456,6 +1456,153 @@ async function assignVaultItem(vaultItemId, itemName, members) {
   }
 }
 
+async function loadRaidSection(character, canManage) {
+  const el = document.getElementById('raid-section');
+  try {
+    const data = await api('/raids/current');
+    renderRaidSection(el, data.raid, character, canManage);
+  } catch (err) {
+    el.innerHTML = `<p class="empty-msg">${err.message}</p>`;
+  }
+}
+
+function renderRaidSection(el, raid, character, canManage) {
+  if (!raid) {
+    el.innerHTML = `
+      <p class="hint">No raid in progress. The Rift Sovereign needs at least 3 clan members to fight - guaranteed rewards for everyone who lands a hit.</p>
+      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Raid</button>' : '<p class="hint">Only the Leader or an Officer can start one.</p>'}
+    `;
+    if (canManage) {
+      document.getElementById('start-raid-btn').addEventListener('click', async () => {
+        try {
+          await api('/raids/create', { method: 'POST' });
+          showToast('Raid started! Waiting for members to join.');
+          loadClanPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    return;
+  }
+
+  const alreadyJoined = raid.participants.some((p) => p.character_id === character.id);
+
+  if (raid.status === 'gathering') {
+    el.innerHTML = `
+      <div class="bonus-breakdown-box">
+        <h4 class="subheading">${raid.bossName} - Gathering</h4>
+        <p class="hint">${raid.participants.length}/${raid.minParticipants} needed to begin. Started by ${raid.createdByName}.</p>
+        ${raid.participants.map((p) => `<div class="bonus-row"><span class="bonus-source">${p.character_name}</span></div>`).join('')}
+      </div>
+      ${!alreadyJoined ? '<button class="btn-primary" id="join-raid-btn">Join Raid</button>' : '<p class="hint">You\'ve joined - waiting for more members.</p>'}
+    `;
+    if (!alreadyJoined) {
+      document.getElementById('join-raid-btn').addEventListener('click', () => joinRaid(raid.id));
+    }
+    return;
+  }
+
+  if (raid.status === 'active') {
+    const pct = Math.max(0, Math.round((raid.currentHp / raid.maxHp) * 100));
+    el.innerHTML = `
+      <div class="worldboss-card" style="display:block;">
+        <div class="worldboss-header">
+          <img class="worldboss-icon" src="/images/monsters/${raid.bossImage}.svg" alt="" />
+          <div>
+            <div class="worldboss-name">${raid.bossName}</div>
+            <div class="worldboss-status">${raid.currentHp.toLocaleString()} / ${raid.maxHp.toLocaleString()} HP</div>
+          </div>
+        </div>
+        <div class="bar worldboss-bar"><div class="bar-fill" id="raid-bar-fill" style="width:${pct}%"></div></div>
+        <div class="worldboss-footer" style="margin-top:10px;">
+          <span class="hint">${raid.participants.length} participants</span>
+          ${alreadyJoined
+            ? '<button class="btn-attack" id="raid-attack-btn">Attack</button>'
+            : '<button class="btn-primary" id="join-raid-btn">Join Raid</button>'}
+        </div>
+      </div>
+      <div class="worldboss-contributors-list" style="margin-top:10px;">
+        ${raid.participants.map((p, i) => `<div class="bonus-row"><span class="bonus-source">${i + 1}. ${p.character_name}</span><span class="bonus-values wbc-dmg">${p.damage_dealt.toLocaleString()} dmg</span></div>`).join('')}
+      </div>
+    `;
+    if (alreadyJoined) {
+      document.getElementById('raid-attack-btn').addEventListener('click', () => attackRaid(raid.id));
+    } else {
+      document.getElementById('join-raid-btn').addEventListener('click', () => joinRaid(raid.id));
+    }
+    return;
+  }
+
+  if (raid.status === 'completed') {
+    el.innerHTML = `
+      <div class="bonus-breakdown-box">
+        <h4 class="subheading">${raid.bossName} - Defeated!</h4>
+        ${(raid.rewardSummary || []).map((r) => `
+          <div class="bonus-row">
+            <span class="bonus-source">${r.characterName} <span class="bonus-count">(${r.damageSharePct}% damage)</span></span>
+            <span class="bonus-values">+${r.expShare} EXP / +${r.goldShare} Gold${r.rewardItemName ? ` / ${r.rewardItemName}` : ''}</span>
+          </div>
+        `).join('')}
+      </div>
+      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Another Raid</button>' : ''}
+    `;
+    if (canManage) {
+      document.getElementById('start-raid-btn').addEventListener('click', async () => {
+        try {
+          await api('/raids/create', { method: 'POST' });
+          showToast('Raid started! Waiting for members to join.');
+          loadClanPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    return;
+  }
+
+  // expired
+  el.innerHTML = `
+    <p class="hint">The last raid expired without enough members joining in time.</p>
+    ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Raid</button>' : ''}
+  `;
+  if (canManage) {
+    document.getElementById('start-raid-btn').addEventListener('click', async () => {
+      try {
+        await api('/raids/create', { method: 'POST' });
+        showToast('Raid started! Waiting for members to join.');
+        loadClanPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+  }
+}
+
+async function joinRaid(raidId) {
+  try {
+    await api(`/raids/${raidId}/join`, { method: 'POST' });
+    showToast('Joined the raid!');
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function attackRaid(raidId) {
+  try {
+    const data = await api(`/raids/${raidId}/attack`, { method: 'POST' });
+    if (data.rewardSummary) {
+      showToast('The Rift Sovereign has fallen! Check the raid section for rewards.');
+    } else {
+      showToast(`Hit for ${data.damage} damage${data.isCrit ? ' (Critical!)' : ''}.`);
+    }
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
 async function loadClanPanel() {
   const content = document.getElementById('clan-content');
   const meData = await api('/auth/me');
@@ -1494,6 +1641,9 @@ async function loadClanPanel() {
         <button class="btn-ghost" id="deposit-item-btn">Deposit Item</button>
       </div>
       <div id="vault-items"></div>
+
+      <h3 class="subheading">Raid</h3>
+      <div id="raid-section"></div>
 
       <button class="btn-ghost" id="leave-clan-btn" style="margin-top:16px;">Leave Clan</button>
     `;
@@ -1547,6 +1697,8 @@ async function loadClanPanel() {
         btn.addEventListener('click', () => assignVaultItem(btn.dataset.id, btn.dataset.name, roster.members));
       });
     }
+
+    loadRaidSection(c, canManage);
 
     document.getElementById('deposit-gold-btn').addEventListener('click', async () => {
       const amount = window.prompt('How much gold to deposit into the vault?');

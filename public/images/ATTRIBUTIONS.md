@@ -172,3 +172,10 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | skill_precision.svg | target-arrows | lorc |
 | skill_wealth.svg | gold-bar | willdabeast |
 | skill_wisdom.svg | open-book | lorc |
+| rift_sovereign.svg | crowned-skull | lorc |
+| sovereigns_blade.svg | rune-sword | lorc |
+| sovereigns_plate.svg | chest-armor | delapouite |
+| sovereigns_crown.svg | horned-skull | lorc |
+| sovereigns_grasp.svg | monster-grasp | lorc |
+| sovereigns_greaves.svg | leg-armor | delapouite |
+| sovereigns_stride.svg | metal-boot | delapouite |
