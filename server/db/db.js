@@ -395,9 +395,16 @@ CREATE TABLE IF NOT EXISTS clan_vault_items (
 CREATE TABLE IF NOT EXISTS raids (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   clan_id INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'gathering', -- gathering | active | completed | expired
+  status TEXT NOT NULL DEFAULT 'gathering', -- gathering | active | completed | failed | expired
   max_hp INTEGER NOT NULL,
   current_hp INTEGER NOT NULL,
+  -- The party's shared HP pool - snapshotted once when the raid activates (roster locks
+  -- at that point, no one can join mid-fight), then depletes round over round like a real
+  -- health bar. Hitting 0 fails the raid outright, no rewards - the actual stakes this
+  -- turn-based rework adds that the old "everyone pokes it whenever" model never had.
+  party_max_hp INTEGER,
+  party_current_hp INTEGER,
+  current_round INTEGER NOT NULL DEFAULT 1,
   created_by_name TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   gathering_expires_at TEXT NOT NULL,
@@ -413,6 +420,7 @@ CREATE TABLE IF NOT EXISTS raid_participants (
   character_name TEXT NOT NULL,
   damage_dealt INTEGER DEFAULT 0,
   last_attack_at TEXT,
+  is_ready INTEGER DEFAULT 0,
   FOREIGN KEY (raid_id) REFERENCES raids(id),
   FOREIGN KEY (character_id) REFERENCES characters(id)
 );

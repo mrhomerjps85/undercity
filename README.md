@@ -338,26 +338,37 @@ Everyone shares the same world, monsters, and leaderboard.
   Leader/Officers can assign vault contents to specific members, rather
   than a free-for-all withdraw.
 - **Raids:** clan-exclusive, event-based content (its own section inside
-  the Clan tab) - a genuinely different pattern from every other boss in
-  the game, which are all "anyone can wander up and help." A Leader/
-  Officer starts a raid against **The Rift Sovereign** (1.2M HP, well
-  above even The Unbound's 220k), which sits in a **gathering** state
-  until 3+ clan members have joined - only then does it auto-flip to
-  **active** and become attackable. No cooldown between raids - the
-  boss's sheer difficulty is what naturally rate-limits repeat attempts,
-  not an artificial timer. A raid that doesn't reach 3 joiners within an
-  hour quietly expires (same lazy "check on read" pattern as Marketplace
-  listings). On defeat, **every participant who actually dealt damage**
-  (joining alone doesn't count - verified live, since an early version of
-  this let two people free-ride into a guaranteed legendary item without
-  ever attacking) gets EXP/gold split by damage share, exactly like a
-  World Boss, **plus one guaranteed item** randomly drawn (with
-  replacement) from the exclusive 6-piece **Sovereign's Dominion** set -
-  not a %-chance roll, since real coordination effort already gates how
-  reliable that should feel. The reward breakdown is persisted on the
-  raid itself, so anyone who didn't land the killing blow can still see
-  exactly what everyone received afterward, not just whoever got the
-  live API response.
+  the Clan tab), reworked into genuine **turn-based group combat** after
+  initial playtesting - a real departure from every other fight in the
+  game (which all reset to full HP every time and can't be permanently
+  lost). A Leader/Officer starts a raid against **The Rift Sovereign**,
+  which sits in **gathering** until 3+ clan members join - at that exact
+  moment the roster **locks** (no joining mid-fight) and the party's
+  combined Max HP is snapshotted as a shared health bar. Each round,
+  every locked-in participant must **Ready Up** before anyone can
+  **Resolve Round** - only then does the party's summed Attack (computed
+  fresh from each member's *current* gear/potions/skills/clan bonuses,
+  not the stale snapshot) hit the boss, and the boss's damage hits the
+  party's shared HP pool, which persists and depletes round over round
+  like a real health bar. **Boss HP hits 0 first → victory**, guaranteed
+  rewards distributed by *cumulative* damage share across every round
+  fought (verified live: a two-round fight correctly summed each
+  person's contribution across both rounds, not just the final one).
+  **Party HP hits 0 first → the raid fails outright, no rewards at all**
+  - the actual stakes this rework adds. No cooldown between raids - the
+  fight itself, not a timer, is what naturally limits repeat attempts.
+  Boss HP/attack were both retuned for this round-based pacing (the
+  original values assumed unlimited independent clicking, which no
+  longer applies) - these are first-pass numbers likely to need real
+  retuning after actual multi-person play, not something verifiable by
+  scripted testing alone. Every participant who actually dealt damage
+  (not just joined - verified live, since an earlier version let people
+  free-ride into a guaranteed legendary item without ever attacking)
+  gets EXP/gold split by damage share plus one guaranteed item randomly
+  drawn (with replacement) from the exclusive 6-piece **Sovereign's
+  Dominion** set. The reward/failure outcome persists on the raid
+  itself, so anyone who didn't trigger the final round can still see
+  exactly what happened afterward.
 - **Leaderboard:** ranks all characters by level/EXP.
 - **Artwork:** monsters, items, and zones use real icon art (not placeholder
   emoji) — 52 SVG icons pulled from [game-icons.net](https://game-icons.net)

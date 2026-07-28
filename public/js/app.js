@@ -1504,32 +1504,67 @@ function renderRaidSection(el, raid, character, canManage) {
   }
 
   if (raid.status === 'active') {
-    const pct = Math.max(0, Math.round((raid.currentHp / raid.maxHp) * 100));
+    const bossPct = Math.max(0, Math.round((raid.currentHp / raid.maxHp) * 100));
+    const partyPct = Math.max(0, Math.round((raid.partyCurrentHp / raid.partyMaxHp) * 100));
+    const readyCount = raid.participants.filter((p) => p.is_ready).length;
+    const me = raid.participants.find((p) => p.character_id === character.id);
+    const allReady = readyCount === raid.participants.length;
+
     el.innerHTML = `
       <div class="worldboss-card" style="display:block;">
         <div class="worldboss-header">
           <img class="worldboss-icon" src="/images/monsters/${raid.bossImage}.svg" alt="" />
           <div>
             <div class="worldboss-name">${raid.bossName}</div>
-            <div class="worldboss-status">${raid.currentHp.toLocaleString()} / ${raid.maxHp.toLocaleString()} HP</div>
+            <div class="worldboss-status">Round ${raid.currentRound} - ${raid.currentHp.toLocaleString()} / ${raid.maxHp.toLocaleString()} Boss HP</div>
           </div>
         </div>
-        <div class="bar worldboss-bar"><div class="bar-fill" id="raid-bar-fill" style="width:${pct}%"></div></div>
+        <div class="bar worldboss-bar"><div class="bar-fill" style="width:${bossPct}%"></div></div>
+
+        <div class="worldboss-status" style="margin-top:12px;">Party HP: ${raid.partyCurrentHp.toLocaleString()} / ${raid.partyMaxHp.toLocaleString()}</div>
+        <div class="bar" style="height:16px;"><div class="bar-fill" style="width:${partyPct}%; background:linear-gradient(90deg, var(--teal), var(--teal-bright));"></div></div>
+
         <div class="worldboss-footer" style="margin-top:10px;">
-          <span class="hint">${raid.participants.length} participants</span>
-          ${alreadyJoined
-            ? '<button class="btn-attack" id="raid-attack-btn">Attack</button>'
-            : '<button class="btn-primary" id="join-raid-btn">Join Raid</button>'}
+          <span class="hint">${readyCount}/${raid.participants.length} ready</span>
+          ${me
+            ? (me.is_ready
+              ? `<button class="btn-ghost" disabled>Waiting for others...</button>`
+              : `<button class="btn-primary" id="raid-ready-btn">Ready Up</button>`)
+            : ''}
+          ${allReady ? '<button class="btn-attack" id="raid-resolve-btn">Resolve Round</button>' : ''}
         </div>
       </div>
       <div class="worldboss-contributors-list" style="margin-top:10px;">
-        ${raid.participants.map((p, i) => `<div class="bonus-row"><span class="bonus-source">${i + 1}. ${p.character_name}</span><span class="bonus-values wbc-dmg">${p.damage_dealt.toLocaleString()} dmg</span></div>`).join('')}
+        ${raid.participants.map((p, i) => `<div class="bonus-row"><span class="bonus-source">${i + 1}. ${p.character_name} ${p.is_ready ? '&#10003;' : ''}</span><span class="bonus-values wbc-dmg">${p.damage_dealt.toLocaleString()} dmg</span></div>`).join('')}
       </div>
     `;
-    if (alreadyJoined) {
-      document.getElementById('raid-attack-btn').addEventListener('click', () => attackRaid(raid.id));
-    } else {
-      document.getElementById('join-raid-btn').addEventListener('click', () => joinRaid(raid.id));
+    if (me && !me.is_ready) {
+      document.getElementById('raid-ready-btn').addEventListener('click', () => readyUpRaid(raid.id));
+    }
+    if (allReady) {
+      document.getElementById('raid-resolve-btn').addEventListener('click', () => resolveRaidRound(raid.id));
+    }
+    return;
+  }
+
+  if (raid.status === 'failed') {
+    el.innerHTML = `
+      <div class="bonus-breakdown-box">
+        <h4 class="subheading">${raid.bossName} - The party fell (Round ${raid.currentRound})</h4>
+        <p class="hint">The Rift Sovereign's damage exceeded the party's combined HP. No rewards this attempt.</p>
+      </div>
+      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Try Again</button>' : ''}
+    `;
+    if (canManage) {
+      document.getElementById('start-raid-btn').addEventListener('click', async () => {
+        try {
+          await api('/raids/create', { method: 'POST' });
+          showToast('Raid started! Waiting for members to join.');
+          loadClanPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
     }
     return;
   }
@@ -1589,13 +1624,25 @@ async function joinRaid(raidId) {
   }
 }
 
-async function attackRaid(raidId) {
+async function readyUpRaid(raidId) {
   try {
-    const data = await api(`/raids/${raidId}/attack`, { method: 'POST' });
-    if (data.rewardSummary) {
+    await api(`/raids/${raidId}/ready`, { method: 'POST' });
+    showToast('Readied up! Waiting for the rest of the party.');
+    loadClanPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function resolveRaidRound(raidId) {
+  try {
+    const data = await api(`/raids/${raidId}/resolve-round`, { method: 'POST' });
+    if (data.raid.status === 'completed') {
       showToast('The Rift Sovereign has fallen! Check the raid section for rewards.');
+    } else if (data.raid.status === 'failed') {
+      showToast('The party could not withstand the Rift Sovereign this time.', true);
     } else {
-      showToast(`Hit for ${data.damage} damage${data.isCrit ? ' (Critical!)' : ''}.`);
+      showToast(`Round resolved: dealt ${data.roundDamageToBoss} to the boss, took ${data.bossDamageToParty} back.`);
     }
     loadClanPanel();
   } catch (err) {

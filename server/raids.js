@@ -1,18 +1,32 @@
 const db = require('./db/db');
 
-// The single Raid Boss for this first pass - a genuinely imposing threat (well above even
-// The Unbound's 220k HP) since with no cooldown between raids, difficulty itself is what
-// keeps this from being trivially farmable, not an artificial timer.
+// Retuned for turn-based round combat - the old values (1.2M HP, unused attack stat) were
+// designed for "anyone clicks attack whenever, independently, unlimited times" pacing.
+// Rounds require everyone to ready up first, so the realistic number of rounds in a
+// sitting is much lower than the old unlimited-click model - HP is scaled down to make a
+// full fight roughly 10-30 rounds for a reasonably-geared group. attack was previously
+// defined but never actually used against players (world bosses never damage back) -
+// this is the first time it does real work, so these numbers are a first-pass estimate
+// that will likely need retuning after actual play, not something verifiable by testing
+// alone.
 const RAID_BOSS = {
   name: 'The Rift Sovereign',
   image: 'rift_sovereign',
   level: 55,
-  maxHp: 1200000,
-  attack: 150,
+  maxHp: 30000,
+  attack: 150, // per-participant multiplier - see computeBossDamageToParty
   defense: 60,
   totalExpReward: 60000,
   totalGoldReward: 40000,
 };
+
+// The boss's damage to the party each round, scaled by participant count so a bigger raid
+// group doesn't automatically trivialize the fight just by having more combined HP - the
+// boss hits proportionally harder too, keeping difficulty roughly consistent regardless of
+// raid size (3 vs 10).
+function computeBossDamageToParty(participantCount) {
+  return Math.round(RAID_BOSS.attack * participantCount * (0.85 + Math.random() * 0.3));
+}
 
 const GATHERING_WINDOW_MINUTES = 60;
 const MIN_PARTICIPANTS_TO_ACTIVATE = 3;
@@ -45,5 +59,5 @@ function expireStaleGatheringRaids() {
 
 module.exports = {
   RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_ACTIVATE,
-  getRaidRewardItemIds, expireStaleGatheringRaids,
+  getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 };

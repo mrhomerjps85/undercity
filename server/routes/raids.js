@@ -1,32 +1,60 @@
 const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
-const { computeDerivedStats, computeWorldBossDamage, WORLD_BOSS_ATTACK_COOLDOWN_SECONDS, applyExpGain } = require('../gameLogic');
+const { computeDerivedStats, applyExpGain } = require('../gameLogic');
 const { getActivePotionEffects } = require('../potions');
 const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp, canManageClan } = require('../clans');
-const { getEquippedBonuses, serializeCharacter, getEquippedWeaponRarity } = require('./character');
+const { getEquippedBonuses } = require('./character');
 const {
   RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_ACTIVATE,
-  getRaidRewardItemIds, expireStaleGatheringRaids,
+  getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 } = require('../raids');
 
 const router = express.Router();
 
+// A participant's current fully-boosted Attack (gear + rebirth + tower + skills, then
+// potion/clan multipliers) - the same calculation used for every other combat path in the
+// game, just computed per-roster-member here instead of for a single attacker.
+function getBoostedAttack(character) {
+  const bonuses = getEquippedBonuses(character.id);
+  const derived = computeDerivedStats(character, bonuses);
+  const potionEffects = getActivePotionEffects(character.id);
+  const skillEffects = getSkillEffects(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
+  return Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
+}
+
+function getBoostedMaxHp(character) {
+  const bonuses = getEquippedBonuses(character.id);
+  const derived = computeDerivedStats(character, bonuses);
+  const potionEffects = getActivePotionEffects(character.id);
+  const skillEffects = getSkillEffects(character.id);
+  const clanEffects = getClanPerkEffects(character.clan_id);
+  return Math.round((derived.maxHp + skillEffects.hpBonus) * potionEffects.hpMult * clanEffects.hpMult);
+}
+
 function serializeRaid(raid) {
-  const participants = db.prepare('SELECT character_id, character_name, damage_dealt FROM raid_participants WHERE raid_id = ? ORDER BY damage_dealt DESC').all(raid.id);
-  return {
+  const participants = db.prepare('SELECT character_id, character_name, damage_dealt, is_ready FROM raid_participants WHERE raid_id = ? ORDER BY id ASC').all(raid.id);
+  const result = {
     id: raid.id,
     status: raid.status,
     bossName: RAID_BOSS.name,
     bossImage: RAID_BOSS.image,
     maxHp: raid.max_hp,
     currentHp: raid.current_hp,
+    partyMaxHp: raid.party_max_hp,
+    partyCurrentHp: raid.party_current_hp,
+    currentRound: raid.current_round,
     createdByName: raid.created_by_name,
     gatheringExpiresAt: raid.gathering_expires_at,
     participants,
     minParticipants: MIN_PARTICIPANTS_TO_ACTIVATE,
   };
+  if (raid.status === 'completed' && raid.reward_summary_json) {
+    result.rewardSummary = JSON.parse(raid.reward_summary_json);
+  }
+  return result;
 }
 
 router.get('/current', requireAuth, requireCharacter, (req, res) => {
@@ -34,20 +62,8 @@ router.get('/current', requireAuth, requireCharacter, (req, res) => {
     return res.status(400).json({ error: 'You are not in a clan.' });
   }
   expireStaleGatheringRaids();
-  // Not filtered to just gathering/active - a 'completed' raid stays visible here too
-  // (until the clan starts a new one), so anyone who didn't land the killing blow can
-  // still see the full reward breakdown afterward, not just whoever got the live response.
-  const raid = db.prepare(`
-    SELECT * FROM raids WHERE clan_id = ? ORDER BY id DESC LIMIT 1
-  `).get(req.character.clan_id);
-  if (!raid) {
-    return res.json({ raid: null });
-  }
-  const serialized = serializeRaid(raid);
-  if (raid.status === 'completed') {
-    serialized.rewardSummary = getRaidRewardSummary(raid.id);
-  }
-  res.json({ raid: serialized });
+  const raid = db.prepare('SELECT * FROM raids WHERE clan_id = ? ORDER BY id DESC LIMIT 1').get(req.character.clan_id);
+  res.json({ raid: raid ? serializeRaid(raid) : null });
 });
 
 router.post('/create', requireAuth, requireCharacter, (req, res) => {
@@ -58,9 +74,7 @@ router.post('/create', requireAuth, requireCharacter, (req, res) => {
     return res.status(403).json({ error: 'Only the Leader or an Officer can start a raid.' });
   }
   expireStaleGatheringRaids();
-  const existing = db.prepare(`
-    SELECT id FROM raids WHERE clan_id = ? AND status IN ('gathering', 'active')
-  `).get(req.character.clan_id);
+  const existing = db.prepare(`SELECT id FROM raids WHERE clan_id = ? AND status IN ('gathering', 'active')`).get(req.character.clan_id);
   if (existing) {
     return res.status(400).json({ error: 'Your clan already has an active raid.' });
   }
@@ -83,8 +97,11 @@ router.post('/:id/join', requireAuth, requireCharacter, (req, res) => {
   if (!raid || raid.clan_id !== req.character.clan_id) {
     return res.status(404).json({ error: 'Raid not found.' });
   }
-  if (raid.status !== 'gathering' && raid.status !== 'active') {
-    return res.status(400).json({ error: 'This raid is no longer joinable.' });
+  // Roster locks the moment the raid activates - no joining mid-fight, since the party's
+  // HP pool is a one-time snapshot taken at activation, not something that can be cleanly
+  // topped up by a later arrival.
+  if (raid.status !== 'gathering') {
+    return res.status(400).json({ error: raid.status === 'active' ? 'This raid has already started - the roster is locked.' : 'This raid is no longer joinable.' });
   }
   const already = db.prepare('SELECT id FROM raid_participants WHERE raid_id = ? AND character_id = ?').get(raid.id, req.character.id);
   if (already) {
@@ -94,71 +111,101 @@ router.post('/:id/join', requireAuth, requireCharacter, (req, res) => {
   db.prepare('INSERT INTO raid_participants (raid_id, character_id, character_name) VALUES (?, ?, ?)')
     .run(raid.id, req.character.id, req.character.name);
 
-  const participantCount = db.prepare('SELECT COUNT(*) c FROM raid_participants WHERE raid_id = ?').get(raid.id).c;
-  if (raid.status === 'gathering' && participantCount >= MIN_PARTICIPANTS_TO_ACTIVATE) {
-    db.prepare("UPDATE raids SET status = 'active' WHERE id = ?").run(raid.id);
+  const participants = db.prepare('SELECT character_id FROM raid_participants WHERE raid_id = ?').all(raid.id);
+  if (participants.length >= MIN_PARTICIPANTS_TO_ACTIVATE) {
+    // Snapshot the party's combined Max HP right now, as the roster locks for good.
+    let partyMaxHp = 0;
+    participants.forEach((p) => {
+      const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
+      if (character) partyMaxHp += getBoostedMaxHp(character);
+    });
+    db.prepare("UPDATE raids SET status = 'active', party_max_hp = ?, party_current_hp = ? WHERE id = ?")
+      .run(partyMaxHp, partyMaxHp, raid.id);
   }
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
   res.json({ raid: serializeRaid(updated) });
 });
 
-router.post('/:id/attack', requireAuth, requireCharacter, (req, res) => {
+router.post('/:id/ready', requireAuth, requireCharacter, (req, res) => {
   const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
   if (!raid || raid.clan_id !== req.character.clan_id) {
     return res.status(404).json({ error: 'Raid not found.' });
   }
   if (raid.status !== 'active') {
-    return res.status(400).json({ error: raid.status === 'gathering' ? `Needs ${MIN_PARTICIPANTS_TO_ACTIVATE} participants before it can be attacked.` : 'This raid has already ended.' });
+    return res.status(400).json({ error: 'This raid is not currently active.' });
   }
   const participant = db.prepare('SELECT * FROM raid_participants WHERE raid_id = ? AND character_id = ?').get(raid.id, req.character.id);
   if (!participant) {
-    return res.status(403).json({ error: 'You must join this raid before attacking it.' });
+    return res.status(403).json({ error: 'You are not part of this raid.' });
   }
-  if (participant.last_attack_at) {
-    const elapsed = (Date.now() - new Date(participant.last_attack_at).getTime()) / 1000;
-    if (elapsed < WORLD_BOSS_ATTACK_COOLDOWN_SECONDS) {
-      return res.status(429).json({ error: `Wait ${Math.ceil(WORLD_BOSS_ATTACK_COOLDOWN_SECONDS - elapsed)}s before attacking again.` });
-    }
+  db.prepare('UPDATE raid_participants SET is_ready = 1 WHERE id = ?').run(participant.id);
+
+  const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
+  res.json({ raid: serializeRaid(updated) });
+});
+
+router.post('/:id/resolve-round', requireAuth, requireCharacter, (req, res) => {
+  const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
+  if (!raid || raid.clan_id !== req.character.clan_id) {
+    return res.status(404).json({ error: 'Raid not found.' });
+  }
+  if (raid.status !== 'active') {
+    return res.status(400).json({ error: 'This raid is not currently active.' });
+  }
+  const participants = db.prepare('SELECT * FROM raid_participants WHERE raid_id = ?').all(raid.id);
+  const isParticipant = participants.some((p) => p.character_id === req.character.id);
+  if (!isParticipant) {
+    return res.status(403).json({ error: 'You are not part of this raid.' });
+  }
+  const allReady = participants.every((p) => p.is_ready);
+  if (!allReady) {
+    return res.status(400).json({ error: 'Not everyone has readied up yet.' });
   }
 
-  const bonuses = getEquippedBonuses(req.character.id);
-  const derived = computeDerivedStats(req.character, bonuses);
-  const potionEffects = getActivePotionEffects(req.character.id);
-  const skillEffects = getSkillEffects(req.character.id);
-  const clanEffects = getClanPerkEffects(req.character.clan_id);
-  const weaponRarity = getEquippedWeaponRarity(req.character.id);
-  const boostedAttack = Math.round((derived.attack + skillEffects.atkBonus) * potionEffects.atkMult * clanEffects.atkMult);
-  const { damage, isCrit } = computeWorldBossDamage(boostedAttack, RAID_BOSS.defense, weaponRarity, potionEffects.critBonus + skillEffects.critBonus);
-  const newHp = Math.max(0, raid.current_hp - damage);
-  const now = new Date().toISOString();
+  // The party's summed Attack this round, computed fresh from each member's CURRENT stats
+  // (gear/potions/skills/clan can all have changed since the last round) - not a stale
+  // snapshot, only party_max_hp/party_current_hp are ever snapshotted.
+  let roundDamageToBoss = 0;
+  participants.forEach((p) => {
+    const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
+    if (!character) return;
+    const atk = getBoostedAttack(character);
+    roundDamageToBoss += atk;
+    db.prepare('UPDATE raid_participants SET damage_dealt = damage_dealt + ?, is_ready = 0 WHERE id = ?').run(atk, p.id);
+  });
 
-  db.prepare('UPDATE raids SET current_hp = ? WHERE id = ?').run(newHp, raid.id);
-  db.prepare('UPDATE raid_participants SET damage_dealt = damage_dealt + ?, last_attack_at = ? WHERE id = ?')
-    .run(damage, now, participant.id);
+  const bossDamageToParty = computeBossDamageToParty(participants.length);
+  const newBossHp = Math.max(0, raid.current_hp - roundDamageToBoss);
+  const newPartyHp = Math.max(0, raid.party_current_hp - bossDamageToParty);
 
   let rewardSummary = null;
-  if (newHp <= 0) {
+  let newStatus = 'active';
+
+  if (newBossHp <= 0) {
+    newStatus = 'completed';
     rewardSummary = distributeRaidRewards(raid.id);
+  } else if (newPartyHp <= 0) {
+    newStatus = 'failed';
+    db.prepare("UPDATE raids SET status = 'failed', current_hp = ?, party_current_hp = 0, completed_at = ? WHERE id = ?")
+      .run(newBossHp, new Date().toISOString(), raid.id);
+  } else {
+    db.prepare('UPDATE raids SET current_hp = ?, party_current_hp = ?, current_round = current_round + 1 WHERE id = ?')
+      .run(newBossHp, newPartyHp, raid.id);
   }
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
   res.json({
-    damage, isCrit,
+    roundDamageToBoss, bossDamageToParty,
     raid: serializeRaid(updated),
-    rewardSummary,
   });
 });
 
-// Guaranteed rewards for every participant: EXP/gold split by damage share (same formula
-// as world bosses), plus ONE randomly-chosen piece from the exclusive Sovereign's Dominion
-// set each - guaranteed, not a %-chance roll, since real coordination effort already
-// gates how often a clan can pull this off (no cooldown, but the boss itself is the wall).
+// Guaranteed rewards for every participant who dealt damage across the whole fight
+// (cumulative damage_dealt, not just the final round) - split by their overall damage
+// share, plus one randomly-chosen piece from the exclusive Sovereign's Dominion set each.
 function distributeRaidRewards(raidId) {
   const allParticipants = db.prepare('SELECT * FROM raid_participants WHERE raid_id = ?').all(raidId);
-  // Only participants who actually dealt damage are "contributors" - simply joining and
-  // never attacking doesn't earn a guaranteed reward, matching the design intent (a
-  // free-rider shouldn't walk away with the same legendary item as someone who fought).
   const participants = allParticipants.filter((p) => p.damage_dealt > 0);
   const totalDamage = participants.reduce((sum, p) => sum + p.damage_dealt, 0) || 1;
   const rewardItemIds = getRaidRewardItemIds();
@@ -199,14 +246,9 @@ function distributeRaidRewards(raidId) {
     };
   });
 
-  db.prepare("UPDATE raids SET status = 'completed', completed_at = ?, reward_summary_json = ? WHERE id = ?")
+  db.prepare("UPDATE raids SET status = 'completed', current_hp = 0, completed_at = ?, reward_summary_json = ? WHERE id = ?")
     .run(new Date().toISOString(), JSON.stringify(results), raidId);
   return results;
-}
-
-function getRaidRewardSummary(raidId) {
-  const raid = db.prepare('SELECT reward_summary_json FROM raids WHERE id = ?').get(raidId);
-  return raid && raid.reward_summary_json ? JSON.parse(raid.reward_summary_json) : null;
 }
 
 module.exports = router;
