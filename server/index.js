@@ -67,6 +67,20 @@ app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/raids', raidsRoutes);
 app.use('/api/skills', skillsRoutes);
 
+// Global error handler - without this, any uncaught exception in a route handler falls
+// through to Express's default handler, which returns a non-JSON response. The frontend's
+// api() helper expects { error: '...' } and falls back to a generic "Something went
+// wrong." when it doesn't get that shape - meaning bugs were silently losing their actual
+// error message both from the user AND from the server logs. This always logs the real
+// stack trace server-side (visible in Render's logs) and always responds with proper JSON.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error on', req.method, req.originalUrl, ':', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({ error: 'Something went wrong on the server. This has been logged.' });
+});
+
 const httpServer = http.createServer(app);
 socketLayer.init(httpServer, sessionMiddleware);
 

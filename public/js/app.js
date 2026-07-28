@@ -1462,6 +1462,7 @@ async function loadRaidSection(character, canManage) {
     const data = await api('/raids/current');
     renderRaidSection(el, data.raid, character, canManage);
   } catch (err) {
+    console.error('Raid section failed to load:', err);
     el.innerHTML = `<p class="empty-msg">${err.message}</p>`;
   }
 }
