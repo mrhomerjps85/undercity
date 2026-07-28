@@ -211,8 +211,12 @@ function estimateWinProbability(characterStats, monster, weaponRarity, simulatio
 
 // How long (in seconds) a monster of a given level takes to respawn after being defeated.
 // Scales gently with level per the design brief ("not so much").
-function respawnSeconds(monsterLevel) {
-  return 20 + monsterLevel * 8;
+// Regular zones: respawn halved from the original pacing. Dungeons: cut to a third -
+// a clearly bigger reduction than regular zones, since dungeon grinding is generally
+// more deliberate/farmed than open-zone leveling.
+function respawnSeconds(monsterLevel, isDungeon = false) {
+  const base = 20 + monsterLevel * 8;
+  return Math.round(isDungeon ? base / 3 : base / 2);
 }
 
 // ---------------------------------------------------------------------

@@ -66,9 +66,11 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
   }
 
   const roomMonster = db.prepare(`
-    SELECT rm.id as room_monster_id, rm.room_id, rm.is_alive, mt.*
+    SELECT rm.id as room_monster_id, rm.room_id, rm.is_alive, mt.*, z.is_dungeon
     FROM room_monsters rm
     JOIN monster_templates mt ON mt.id = rm.monster_template_id
+    JOIN rooms r ON r.id = rm.room_id
+    JOIN zones z ON z.id = r.zone_id
     WHERE rm.id = ?
   `).get(roomMonsterId);
 
@@ -124,7 +126,7 @@ router.post('/attack', requireAuth, requireCharacter, (req, res) => {
     `).run(updatedChar.exp, updatedChar.level, updatedChar.attack_points, updatedChar.hp_points, result.goldGained, result.hpRemaining, character.id);
 
     // Monster respawns after a delay scaled to its level.
-    const respawnAt = new Date(Date.now() + respawnSeconds(roomMonster.level) * 1000).toISOString();
+    const respawnAt = new Date(Date.now() + respawnSeconds(roomMonster.level, !!roomMonster.is_dungeon) * 1000).toISOString();
     db.prepare('UPDATE room_monsters SET is_alive = 0, respawn_at = ? WHERE id = ?').run(respawnAt, roomMonster.room_monster_id);
 
     droppedItems = rollDrops(character.id, roomMonster.id);

@@ -77,7 +77,11 @@ Everyone shares the same world, monsters, and leaderboard.
   **Recent Battles** log (last 50 fights, win/loss and rewards) - the data
   was already being recorded on every attack, it just wasn't surfaced anywhere.
 - **Monster respawns:** defeated monsters go on a cooldown that scales gently
-  with their level (`20 + level * 8` seconds) before reappearing. Rooms can
+  with their level - `(20 + level * 8) / 2` seconds in regular zones, or
+  `/ 3` in dungeons (a clearly bigger cut, since dungeon grinding tends to
+  be more deliberately farmed than open-zone leveling) - before
+  reappearing. Verified live: a level 22 dungeon monster respawns in
+  exactly 65s, a level 1 regular-zone monster in exactly 14s. Rooms can
   and do hold multiple copies of the same monster.
 - **Quests:** 29 quests spanning levels 1-50, no gaps — kill quests and
   collect quests (gather N of an item a monster drops), some chained via
