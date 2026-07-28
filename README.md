@@ -344,20 +344,24 @@ Everyone shares the same world, monsters, and leaderboard.
   lost). A Leader/Officer starts a raid against **The Rift Sovereign**,
   which sits in **gathering** until 3+ clan members join - at that exact
   moment the roster **locks** (no joining mid-fight) and the party's
-  combined Max HP is snapshotted as a shared health bar. Each round,
-  every locked-in participant must **Ready Up** before anyone can
-  **Resolve Round** - only then does the party's summed Attack (computed
-  fresh from each member's *current* gear/potions/skills/clan bonuses,
-  not the stale snapshot) hit the boss, and the boss's damage hits the
-  party's shared HP pool, which persists and depletes round over round
-  like a real health bar. **Boss HP hits 0 first → victory**, guaranteed
-  rewards distributed by *cumulative* damage share across every round
-  fought (verified live: a two-round fight correctly summed each
-  person's contribution across both rounds, not just the final one).
-  **Party HP hits 0 first → the raid fails outright, no rewards at all**
-  - the actual stakes this rework adds. No cooldown between raids - the
-  fight itself, not a timer, is what naturally limits repeat attempts.
-  Boss HP/attack were both retuned for this round-based pacing (the
+  combined Max HP is snapshotted as a shared health bar. Every locked-in
+  participant **Ready Up**s once, then anyone can **Start the Raid** -
+  at that point the *entire* fight resolves to its conclusion in a single
+  action (each member's Attack computed once, not re-queried every
+  simulated round), rather than repeating the ready-up cycle every round,
+  which initial playtesting found tedious in practice. The party's summed
+  Attack hits the boss and the boss's damage hits the party's shared HP
+  pool every simulated round, both persisting and depleting like real
+  health bars, capped defensively at 500 simulated rounds so a freak edge
+  case can't hang the server - if neither side has fallen by then, the
+  party can simply Start again to keep going from where they left off.
+  **Boss HP hits 0 first → victory**, guaranteed rewards distributed by
+  *cumulative* damage share across every round fought (verified live: a
+  four-round loss and a one-round win both correctly summed/attributed
+  damage). **Party HP hits 0 first → the raid fails outright, no rewards
+  at all** - the actual stakes this rework adds. No cooldown between
+  raids - the fight itself, not a timer, is what naturally limits repeat
+  attempts. Boss HP/attack were both retuned for this round-based pacing (the
   original values assumed unlimited independent clicking, which no
   longer applies) - these are first-pass numbers likely to need real
   retuning after actual multi-person play, not something verifiable by

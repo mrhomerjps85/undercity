@@ -1532,7 +1532,7 @@ function renderRaidSection(el, raid, character, canManage) {
               ? `<button class="btn-ghost" disabled>Waiting for others...</button>`
               : `<button class="btn-primary" id="raid-ready-btn">Ready Up</button>`)
             : ''}
-          ${allReady ? '<button class="btn-attack" id="raid-resolve-btn">Resolve Round</button>' : ''}
+          ${allReady ? '<button class="btn-attack" id="raid-resolve-btn">Start Raid</button>' : ''}
         </div>
       </div>
       <div class="worldboss-contributors-list" style="margin-top:10px;">
@@ -1543,7 +1543,7 @@ function renderRaidSection(el, raid, character, canManage) {
       document.getElementById('raid-ready-btn').addEventListener('click', () => readyUpRaid(raid.id));
     }
     if (allReady) {
-      document.getElementById('raid-resolve-btn').addEventListener('click', () => resolveRaidRound(raid.id));
+      document.getElementById('raid-resolve-btn').addEventListener('click', () => startRaidFight(raid.id));
     }
     return;
   }
@@ -1635,15 +1635,15 @@ async function readyUpRaid(raidId) {
   }
 }
 
-async function resolveRaidRound(raidId) {
+async function startRaidFight(raidId) {
   try {
-    const data = await api(`/raids/${raidId}/resolve-round`, { method: 'POST' });
+    const data = await api(`/raids/${raidId}/start`, { method: 'POST' });
     if (data.raid.status === 'completed') {
-      showToast('The Rift Sovereign has fallen! Check the raid section for rewards.');
+      showToast(`The Rift Sovereign has fallen after ${data.roundsFought} round${data.roundsFought === 1 ? '' : 's'}! Check the raid section for rewards.`);
     } else if (data.raid.status === 'failed') {
-      showToast('The party could not withstand the Rift Sovereign this time.', true);
+      showToast(`The party fell after ${data.roundsFought} round${data.roundsFought === 1 ? '' : 's'}. No rewards this attempt.`, true);
     } else {
-      showToast(`Round resolved: dealt ${data.roundDamageToBoss} to the boss, took ${data.bossDamageToParty} back.`);
+      showToast(`Fought ${data.roundsFought} rounds - both sides still standing. Ready up again to keep going.`);
     }
     loadClanPanel();
   } catch (err) {

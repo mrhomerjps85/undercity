@@ -145,7 +145,16 @@ router.post('/:id/ready', requireAuth, requireCharacter, (req, res) => {
   res.json({ raid: serializeRaid(updated) });
 });
 
-router.post('/:id/resolve-round', requireAuth, requireCharacter, (req, res) => {
+// Runs the ENTIRE fight to its conclusion in one call, once everyone has readied up -
+// no more repeating the ready-up cycle every single round, which is what made the
+// original per-round design tedious in practice (confirmed by actual play). Each
+// participant's Attack is computed once at the start (not re-queried every simulated
+// round - there's no meaningful time for gear/potions to change mid-resolution anyway),
+// and the loop runs until either side hits 0, capped defensively so a freak edge case
+// (e.g. a party with 0 combined Attack) can't hang the server.
+const MAX_SIMULATED_ROUNDS = 500;
+
+router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
   const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
   if (!raid || raid.clan_id !== req.character.clan_id) {
     return res.status(404).json({ error: 'Raid not found.' });
@@ -163,42 +172,48 @@ router.post('/:id/resolve-round', requireAuth, requireCharacter, (req, res) => {
     return res.status(400).json({ error: 'Not everyone has readied up yet.' });
   }
 
-  // The party's summed Attack this round, computed fresh from each member's CURRENT stats
-  // (gear/potions/skills/clan can all have changed since the last round) - not a stale
-  // snapshot, only party_max_hp/party_current_hp are ever snapshotted.
-  let roundDamageToBoss = 0;
+  const attackByParticipant = {};
+  let totalPartyAttack = 0;
   participants.forEach((p) => {
     const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
-    if (!character) return;
-    const atk = getBoostedAttack(character);
-    roundDamageToBoss += atk;
-    db.prepare('UPDATE raid_participants SET damage_dealt = damage_dealt + ?, is_ready = 0 WHERE id = ?').run(atk, p.id);
+    const atk = character ? getBoostedAttack(character) : 0;
+    attackByParticipant[p.id] = atk;
+    totalPartyAttack += atk;
   });
 
-  const bossDamageToParty = computeBossDamageToParty(participants.length);
-  const newBossHp = Math.max(0, raid.current_hp - roundDamageToBoss);
-  const newPartyHp = Math.max(0, raid.party_current_hp - bossDamageToParty);
+  let bossHp = raid.current_hp;
+  let partyHp = raid.party_current_hp;
+  let round = raid.current_round;
+  const roundLog = [];
+
+  while (bossHp > 0 && partyHp > 0 && round - raid.current_round < MAX_SIMULATED_ROUNDS) {
+    bossHp = Math.max(0, bossHp - totalPartyAttack);
+    const bossDamage = computeBossDamageToParty(participants.length);
+    partyHp = Math.max(0, partyHp - bossDamage);
+    roundLog.push({ round, damageToBoss: totalPartyAttack, damageToParty: bossDamage });
+    participants.forEach((p) => {
+      db.prepare('UPDATE raid_participants SET damage_dealt = damage_dealt + ? WHERE id = ?').run(attackByParticipant[p.id], p.id);
+    });
+    round += 1;
+    if (bossHp <= 0 || partyHp <= 0) break;
+  }
 
   let rewardSummary = null;
-  let newStatus = 'active';
-
-  if (newBossHp <= 0) {
-    newStatus = 'completed';
+  if (bossHp <= 0) {
     rewardSummary = distributeRaidRewards(raid.id);
-  } else if (newPartyHp <= 0) {
-    newStatus = 'failed';
-    db.prepare("UPDATE raids SET status = 'failed', current_hp = ?, party_current_hp = 0, completed_at = ? WHERE id = ?")
-      .run(newBossHp, new Date().toISOString(), raid.id);
+  } else if (partyHp <= 0) {
+    db.prepare("UPDATE raids SET status = 'failed', current_hp = ?, party_current_hp = 0, current_round = ?, completed_at = ? WHERE id = ?")
+      .run(bossHp, round, new Date().toISOString(), raid.id);
   } else {
-    db.prepare('UPDATE raids SET current_hp = ?, party_current_hp = ?, current_round = current_round + 1 WHERE id = ?')
-      .run(newBossHp, newPartyHp, raid.id);
+    // Hit the safety cap without a resolution - leave it active at the new HP/round so
+    // the party can simply Start again to keep going, rather than losing progress.
+    db.prepare('UPDATE raids SET current_hp = ?, party_current_hp = ?, current_round = ? WHERE id = ?')
+      .run(bossHp, partyHp, round, raid.id);
+    db.prepare('UPDATE raid_participants SET is_ready = 0 WHERE raid_id = ?').run(raid.id);
   }
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
-  res.json({
-    roundDamageToBoss, bossDamageToParty,
-    raid: serializeRaid(updated),
-  });
+  res.json({ roundsFought: roundLog.length, roundLog, raid: serializeRaid(updated) });
 });
 
 // Guaranteed rewards for every participant who dealt damage across the whole fight
