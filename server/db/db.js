@@ -527,6 +527,17 @@ ensureColumn('clans', 'clan_level', 'INTEGER DEFAULT 1');
 ensureColumn('clans', 'clan_xp', 'INTEGER DEFAULT 0');
 ensureColumn('clans', 'vault_gold', 'INTEGER DEFAULT 0');
 
+// Raids table existed before reward_summary_json and the turn-based rework's party HP
+// fields were added - CREATE TABLE IF NOT EXISTS only helps a brand-new database, so an
+// already-existing raids/raid_participants table (from before any of these columns
+// existed) needs each one added explicitly here, or every read of that table crashes with
+// "no such column" - exactly what happened in production before this fix.
+ensureColumn('raids', 'reward_summary_json', 'TEXT');
+ensureColumn('raids', 'party_max_hp', 'INTEGER');
+ensureColumn('raids', 'party_current_hp', 'INTEGER');
+ensureColumn('raids', 'current_round', 'INTEGER DEFAULT 1');
+ensureColumn('raid_participants', 'is_ready', 'INTEGER DEFAULT 0');
+
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually
 // holding the 'leader' role, locking that clan out of leader-only actions.
