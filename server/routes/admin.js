@@ -1,4 +1,6 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('../db/db');
 const { requireAuth } = require('../middleware');
 
@@ -59,6 +61,25 @@ router.post('/players/:userId/unban', requireAuth, requireAdmin, (req, res) => {
   }
   db.prepare('UPDATE users SET banned = 0 WHERE id = ?').run(targetId);
   res.json({ success: true });
+});
+
+// Generates a random temporary password and overwrites the account's password_hash
+// directly - no email/token flow, since there's no email on file yet. The plaintext is
+// returned exactly once in this response; it is never stored or logged anywhere, so the
+// admin needs to relay it to the player immediately (Discord, wherever) - there's no way
+// to retrieve it again after this call returns.
+router.post('/players/:userId/reset-password', requireAuth, requireAdmin, async (req, res) => {
+  const targetId = Number(req.params.userId);
+  const target = db.prepare('SELECT id, username FROM users WHERE id = ?').get(targetId);
+  if (!target) {
+    return res.status(404).json({ error: 'Player not found.' });
+  }
+
+  const tempPassword = crypto.randomBytes(9).toString('base64').replace(/[+/=]/g, '').slice(0, 12);
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, targetId);
+
+  res.json({ success: true, username: target.username, tempPassword });
 });
 
 // Permanently deletes an account and everything tied to it. Chat messages are kept

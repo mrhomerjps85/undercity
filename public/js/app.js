@@ -2117,10 +2117,20 @@ async function loadAdminPlayers(search) {
           <span class="apm">${p.character_name ? `${p.character_name} — Lv.${p.level}, ${p.gold}g` : 'No character yet'} — joined ${p.account_created_at}</span>
         </div>
         <div class="admin-player-actions">
+          <button class="btn-ghost admin-reset-btn">Reset Password</button>
           ${p.is_admin ? '' : `<button class="btn-ghost admin-ban-btn">${p.banned ? 'Unban' : 'Ban'}</button>
           <button class="btn-danger admin-delete-btn">Delete</button>`}
         </div>
       `;
+      row.querySelector('.admin-reset-btn').addEventListener('click', async () => {
+        if (!window.confirm(`Reset ${p.username}'s password? This immediately invalidates their current password.`)) return;
+        try {
+          const data = await api(`/admin/players/${p.user_id}/reset-password`, { method: 'POST' });
+          window.prompt(`New temporary password for ${data.username} (copy this now - it won't be shown again):`, data.tempPassword);
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
       if (!p.is_admin) {
         row.querySelector('.admin-ban-btn').addEventListener('click', async () => {
           const action = p.banned ? 'unban' : 'ban';

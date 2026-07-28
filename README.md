@@ -380,7 +380,20 @@ Everyone shares the same world, monsters, and leaderboard.
   not just future ones), unban, or permanently delete an account - deleting
   cleans up their inventory, quests, and combat history with no orphaned
   rows, though chat messages are kept since they already store the sender's
-  name as plain text and don't need the account to still exist. There's no
+  name as plain text and don't need the account to still exist. **Reset
+  Password** generates a random temporary password and overwrites the
+  account's hash directly - there's no email on file yet, so this is an
+  admin-assisted stand-in for the "click a link in your email" flow most
+  sites have: the admin relays the temporary password to the player
+  through whatever channel they contacted you on (Discord, etc.). The
+  plaintext is shown exactly once in the response and is never stored or
+  logged anywhere - if the admin closes that prompt without copying it,
+  it has to be reset again. Verified live: confirmed the player's old
+  password stops working the instant it's reset, and the new temporary
+  one logs in correctly. Available on every account, including other
+  admins (unlike ban/delete, which can't target admin accounts) - anyone
+  can get locked out. Full self-service email-based reset remains a
+  planned upgrade once an email-sending provider is chosen. There's no
   UI to grant the *first* admin (nothing to click before one exists) - run
   `npm run make-admin <username>` once, locally or via Render's Shell tab
   against production, to bootstrap it.
