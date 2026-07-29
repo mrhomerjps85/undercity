@@ -1481,44 +1481,53 @@ async function loadRaidSection(character, canManage) {
   }
 }
 
+// Renders the full boss-selection UI into a container element - used both when there's no
+// raid at all and after a raid concludes (completed/failed/expired), so the clan always
+// gets to genuinely choose which boss to fight next rather than being defaulted back into
+// whichever one was just attempted.
+async function renderBossPicker(container, canManage) {
+  if (!canManage) {
+    container.innerHTML = '<p class="hint">Only the Leader or an Officer can start a new raid.</p>';
+    return;
+  }
+  let bosses = [];
+  try {
+    const data = await api('/raids/bosses');
+    bosses = data.bosses;
+  } catch (err) {
+    container.innerHTML = `<p class="empty-msg">${err.message}</p>`;
+    return;
+  }
+  container.innerHTML = `
+    <p class="hint">Choose a raid boss to challenge. Needs at least 3 clan members to launch - guaranteed rewards for everyone who lands a hit.</p>
+    <div class="pets-list">
+      ${bosses.map((b) => `
+        <div class="pet-card">
+          <img class="pet-icon" src="/images/monsters/${b.image}.svg" alt="" />
+          <div class="pet-name">${b.name}</div>
+          <div class="pet-count">Lv.${b.level} - ${b.maxHp.toLocaleString()} HP</div>
+          <button class="btn-primary pet-activate-btn" data-boss-key="${b.key}">Start This Raid</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  container.querySelectorAll('.pet-activate-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: btn.dataset.bossKey }) });
+        showToast('Raid started! Waiting for members to join.');
+        loadClanPanel();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+  });
+}
+
 async function renderRaidSection(el, raid, character, canManage) {
   if (!raid) {
-    if (!canManage) {
-      el.innerHTML = '<p class="hint">No raid in progress. Only the Leader or an Officer can start one.</p>';
-      return;
-    }
-    let bosses = [];
-    try {
-      const data = await api('/raids/bosses');
-      bosses = data.bosses;
-    } catch (err) {
-      el.innerHTML = `<p class="empty-msg">${err.message}</p>`;
-      return;
-    }
-    el.innerHTML = `
-      <p class="hint">Choose a raid boss to challenge. Needs at least 3 clan members to launch - guaranteed rewards for everyone who lands a hit.</p>
-      <div class="pets-list">
-        ${bosses.map((b) => `
-          <div class="pet-card">
-            <img class="pet-icon" src="/images/monsters/${b.image}.svg" alt="" />
-            <div class="pet-name">${b.name}</div>
-            <div class="pet-count">Lv.${b.level} - ${b.maxHp.toLocaleString()} HP</div>
-            <button class="btn-primary pet-activate-btn" data-boss-key="${b.key}">Start This Raid</button>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    el.querySelectorAll('.pet-activate-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        try {
-          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: btn.dataset.bossKey }) });
-          showToast('Raid started! Waiting for members to join.');
-          loadClanPanel();
-        } catch (err) {
-          showToast(err.message, true);
-        }
-      });
-    });
+    el.innerHTML = '<div id="boss-picker"></div>';
+    await renderBossPicker(document.getElementById('boss-picker'), canManage);
     return;
   }
 
@@ -1586,19 +1595,9 @@ async function renderRaidSection(el, raid, character, canManage) {
         <h4 class="subheading">${raid.bossName} - The party fell (Round ${raid.currentRound})</h4>
         <p class="hint">${raid.bossName}'s damage exceeded the party's combined HP. No rewards this attempt.</p>
       </div>
-      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Try Again</button>' : ''}
+      <div id="boss-picker"></div>
     `;
-    if (canManage) {
-      document.getElementById('start-raid-btn').addEventListener('click', async () => {
-        try {
-          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
-          showToast('Raid started! Waiting for members to join.');
-          loadClanPanel();
-        } catch (err) {
-          showToast(err.message, true);
-        }
-      });
-    }
+    await renderBossPicker(document.getElementById('boss-picker'), canManage);
     return;
   }
 
@@ -1613,38 +1612,18 @@ async function renderRaidSection(el, raid, character, canManage) {
           </div>
         `).join('')}
       </div>
-      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Another Raid</button>' : ''}
+      <div id="boss-picker"></div>
     `;
-    if (canManage) {
-      document.getElementById('start-raid-btn').addEventListener('click', async () => {
-        try {
-          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
-          showToast('Raid started! Waiting for members to join.');
-          loadClanPanel();
-        } catch (err) {
-          showToast(err.message, true);
-        }
-      });
-    }
+    await renderBossPicker(document.getElementById('boss-picker'), canManage);
     return;
   }
 
   // expired
   el.innerHTML = `
     <p class="hint">The last raid (${raid.bossName}) expired without enough members joining in time.</p>
-    ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Raid</button>' : ''}
+    <div id="boss-picker"></div>
   `;
-  if (canManage) {
-    document.getElementById('start-raid-btn').addEventListener('click', async () => {
-      try {
-        await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
-        showToast('Raid started! Waiting for members to join.');
-        loadClanPanel();
-      } catch (err) {
-        showToast(err.message, true);
-      }
-    });
-  }
+  await renderBossPicker(document.getElementById('boss-picker'), canManage);
 }
 
 async function joinRaid(raidId) {
