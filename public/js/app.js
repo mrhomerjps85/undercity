@@ -108,6 +108,13 @@ async function boot(isRetry = false) {
     state.user = data.user;
     document.getElementById('admin-nav-item').classList.toggle('hidden', !data.user.is_admin);
     document.getElementById('news-badge').classList.toggle('hidden', !data.hasUnreadNews);
+    const banner = document.getElementById('impersonation-banner');
+    if (data.impersonating) {
+      document.getElementById('impersonation-text').textContent = `${data.impersonating.adminUsername}: viewing as ${data.impersonating.targetUsername}`;
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
     if (data.character) {
       state.character = data.character;
       await enterGame();
@@ -192,6 +199,16 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   state.user = null;
   state.character = null;
   showScreen('auth-screen');
+});
+
+document.getElementById('exit-impersonation-btn').addEventListener('click', async () => {
+  try {
+    await api('/admin/impersonate/exit', { method: 'POST' });
+    showToast('Exited impersonation.');
+    window.location.reload();
+  } catch (err) {
+    showToast(err.message, true);
+  }
 });
 
 // ---------- Enter game ----------
@@ -2178,7 +2195,8 @@ async function loadAdminPlayers(search) {
         </div>
         <div class="admin-player-actions">
           <button class="btn-ghost admin-reset-btn">Reset Password</button>
-          ${p.is_admin ? '' : `<button class="btn-ghost admin-ban-btn">${p.banned ? 'Unban' : 'Ban'}</button>
+          ${p.is_admin ? '' : `<button class="btn-ghost admin-impersonate-btn">Impersonate</button>
+          <button class="btn-ghost admin-ban-btn">${p.banned ? 'Unban' : 'Ban'}</button>
           <button class="btn-danger admin-delete-btn">Delete</button>`}
         </div>
       `;
@@ -2192,6 +2210,16 @@ async function loadAdminPlayers(search) {
         }
       });
       if (!p.is_admin) {
+        row.querySelector('.admin-impersonate-btn').addEventListener('click', async () => {
+          if (!window.confirm(`View the game as ${p.username}? A visible banner will show while impersonating, and this is logged.`)) return;
+          try {
+            await api(`/admin/impersonate/${p.user_id}`, { method: 'POST' });
+            showToast(`Now viewing as ${p.username}.`);
+            window.location.reload();
+          } catch (err) {
+            showToast(err.message, true);
+          }
+        });
         row.querySelector('.admin-ban-btn').addEventListener('click', async () => {
           const action = p.banned ? 'unban' : 'ban';
           if (!window.confirm(`${action === 'ban' ? 'Ban' : 'Unban'} ${p.username}?`)) return;

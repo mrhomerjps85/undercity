@@ -443,7 +443,21 @@ Everyone shares the same world, monsters, and leaderboard.
   planned upgrade once an email-sending provider is chosen. There's no
   UI to grant the *first* admin (nothing to click before one exists) - run
   `npm run make-admin <username>` once, locally or via Render's Shell tab
-  against production, to bootstrap it.
+  against production, to bootstrap it. **Impersonation**: an admin can
+  fully view/act as another player's account (for debugging player-
+  reported issues) via an "Impersonate" button in the player list - a
+  persistent gold banner ("AdminName: viewing as PlayerName") stays
+  visible the whole time with a one-click Exit, and the admin's own
+  session/login is untouched underneath, so exiting is instant with no
+  re-login. Blocked against impersonating other admin accounts or
+  yourself. Every session start and end is logged (admin, target,
+  timestamps) for accountability. Verified live: confirmed a real combat
+  action taken while impersonating landed on the *target's* character
+  (EXP 0 → 8) while the admin's own character stayed completely
+  untouched (EXP unchanged), and caught a real Express routing bug during
+  testing - `/impersonate/exit` was being silently shadowed by
+  `/impersonate/:userId` matching "exit" as a user ID, fixed by
+  reordering the routes so the specific path is matched first.
 - **Player profiles:** click any player's name - in chat, in the "also
   here" list when you share a room, or on the leaderboard - to open a
   read-only profile: level, clan, Attack/Max HP, active set bonuses, and

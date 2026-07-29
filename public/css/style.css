@@ -160,6 +160,32 @@ button {
   margin: 0;
 }
 
+/* ============ IMPERSONATION BANNER ============ */
+.impersonation-banner {
+  background: var(--gold);
+  color: #1a1400;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 500;
+}
+.impersonation-banner button {
+  background: #1a1400;
+  color: var(--gold-bright);
+  border: none;
+  padding: 6px 14px;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 /* ============ TOP BAR ============ */
 .topbar {
   display: flex;

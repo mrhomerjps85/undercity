@@ -140,4 +140,46 @@ router.get('/stats', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// Full impersonation - the admin's own session.userId is untouched underneath (see
+// getEffectiveUserId), so exiting is instant with no re-login needed. Blocked against
+// other admin accounts and self, and every start/end is logged for accountability.
+// IMPORTANT: /impersonate/exit must be registered BEFORE /impersonate/:userId - otherwise
+// Express matches "exit" as the :userId param and this route is silently shadowed.
+router.post('/impersonate/exit', requireAuth, (req, res) => {
+  if (!req.session.impersonatingUserId) {
+    return res.status(400).json({ error: 'Not currently impersonating anyone.' });
+  }
+  const logEntry = db.prepare(`
+    SELECT id FROM impersonation_log
+    WHERE admin_user_id = ? AND target_user_id = ? AND ended_at IS NULL
+    ORDER BY id DESC LIMIT 1
+  `).get(req.session.userId, req.session.impersonatingUserId);
+  if (logEntry) {
+    db.prepare("UPDATE impersonation_log SET ended_at = datetime('now') WHERE id = ?").run(logEntry.id);
+  }
+  req.session.impersonatingUserId = null;
+  res.json({ success: true });
+});
+
+router.post('/impersonate/:userId', requireAuth, requireAdmin, (req, res) => {
+  const targetId = Number(req.params.userId);
+  if (targetId === req.session.userId) {
+    return res.status(400).json({ error: "You can't impersonate yourself." });
+  }
+  const target = db.prepare('SELECT id, username, is_admin FROM users WHERE id = ?').get(targetId);
+  if (!target) {
+    return res.status(404).json({ error: 'Player not found.' });
+  }
+  if (target.is_admin) {
+    return res.status(400).json({ error: 'Impersonating other admin accounts is not allowed.' });
+  }
+
+  const admin = db.prepare('SELECT username FROM users WHERE id = ?').get(req.session.userId);
+  req.session.impersonatingUserId = targetId;
+  db.prepare('INSERT INTO impersonation_log (admin_user_id, admin_username, target_user_id, target_username) VALUES (?, ?, ?, ?)')
+    .run(req.session.userId, admin.username, target.id, target.username);
+
+  res.json({ success: true, targetUsername: target.username });
+});
+
 module.exports = router;

@@ -259,6 +259,19 @@ CREATE TABLE IF NOT EXISTS news_posts (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- Audit trail for admin impersonation - who impersonated whom and when, plus when they
+-- exited. Kept simple (usernames snapshotted as text) since this is for accountability if
+-- a player ever asks "did someone touch my account," not a compliance system.
+CREATE TABLE IF NOT EXISTS impersonation_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_user_id INTEGER NOT NULL,
+  admin_username TEXT NOT NULL,
+  target_user_id INTEGER NOT NULL,
+  target_username TEXT NOT NULL,
+  started_at TEXT DEFAULT (datetime('now')),
+  ended_at TEXT
+);
+
 -- Room-based NPCs. npc_type distinguishes what a client should render/offer when standing
 -- in their room - 'rebirth' shows the Rebirth card, other types are just flavor for now but
 -- this stays generic so future NPCs (shopkeepers, quest-givers) don't need a new table.

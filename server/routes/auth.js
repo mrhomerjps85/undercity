@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db/db');
 const { serializeCharacter } = require('./character');
-const { requireAuth } = require('../middleware');
+const { requireAuth, getEffectiveUserId } = require('../middleware');
 
 const router = express.Router();
 
@@ -82,13 +82,26 @@ function parseTimestamp(str) {
 }
 
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, is_admin, last_news_read_at FROM users WHERE id = ?').get(req.session.userId);
-  const character = db.prepare('SELECT * FROM characters WHERE user_id = ?').get(req.session.userId);
+  const effectiveUserId = getEffectiveUserId(req);
+  const effectiveUser = db.prepare('SELECT id, username, last_news_read_at FROM users WHERE id = ?').get(effectiveUserId);
+  const character = db.prepare('SELECT * FROM characters WHERE user_id = ?').get(effectiveUserId);
+
+  // is_admin always reflects the REAL logged-in admin, never the impersonated target -
+  // otherwise impersonating a non-admin player would hide the Admin tab entirely, making
+  // it hard to find the way back to Exit Impersonation.
+  const realUser = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(req.session.userId);
+  const user = { ...effectiveUser, is_admin: realUser.is_admin };
 
   const latestPost = db.prepare('SELECT created_at FROM news_posts ORDER BY created_at DESC LIMIT 1').get();
   const hasUnreadNews = !!latestPost && parseTimestamp(latestPost.created_at) > parseTimestamp(user.last_news_read_at);
 
-  res.json({ user, character: character ? serializeCharacter(character) : null, hasUnreadNews });
+  let impersonating = null;
+  if (req.session.impersonatingUserId) {
+    const admin = db.prepare('SELECT username FROM users WHERE id = ?').get(req.session.userId);
+    impersonating = { adminUsername: admin.username, targetUsername: effectiveUser.username };
+  }
+
+  res.json({ user, character: character ? serializeCharacter(character) : null, hasUnreadNews, impersonating });
 });
 
 module.exports = router;

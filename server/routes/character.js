@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db/db');
-const { requireAuth, requireCharacter } = require('../middleware');
+const { requireAuth, requireCharacter, getEffectiveUserId } = require('../middleware');
 const {
   computeDerivedStats, expToNextLevel, applyUpgradeMultiplier, getCritConfig,
   REBIRTH_BONUS_ATTACK, REBIRTH_BONUS_HP,
@@ -115,7 +115,8 @@ function serializeCharacter(character) {
 }
 
 router.post('/', requireAuth, (req, res) => {
-  const existing = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(req.session.userId);
+  const effectiveUserId = getEffectiveUserId(req);
+  const existing = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(effectiveUserId);
   if (existing) {
     return res.status(409).json({ error: 'You already have a character.' });
   }
@@ -141,7 +142,7 @@ router.post('/', requireAuth, (req, res) => {
   const result = db.prepare(`
     INSERT INTO characters (user_id, name, current_room_id)
     VALUES (?, ?, ?)
-  `).run(req.session.userId, name, spawnRoom.id);
+  `).run(effectiveUserId, name, spawnRoom.id);
 
   const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(result.lastInsertRowid);
   res.json({ character: serializeCharacter(character) });
