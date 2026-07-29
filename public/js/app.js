@@ -785,6 +785,11 @@ function renderFullBonusBreakdown(b) {
       <span class="bonus-source">Skills</span>
       <span class="bonus-values">+${b.skills.atk} ATK / +${b.skills.hp} HP</span>
     </div>` : ''}
+    ${b.pet && b.pet.active ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Pet <span class="bonus-count rarity-${b.pet.active.rarity}">(${b.pet.active.name})</span></span>
+      <span class="bonus-values">+${b.pet.atk} ATK / +${b.pet.hp} HP</span>
+    </div>` : ''}
     ${b.clan && b.clan.inClan ? `
     <div class="bonus-row">
       <span class="bonus-source">Clan Perk <span class="bonus-count">(+${b.clan.perkPercent}%)</span></span>
@@ -828,6 +833,11 @@ function renderCombatInfo(b) {
     <div class="bonus-row">
       <span class="bonus-source">Precision Skill Bonus</span>
       <span class="bonus-values">+${b.crit.skillBonusPct} pts</span>
+    </div>` : ''}
+    ${b.crit.petBonusPct > 0 ? `
+    <div class="bonus-row">
+      <span class="bonus-source">Pet Bonus</span>
+      <span class="bonus-values">+${b.crit.petBonusPct} pts</span>
     </div>` : ''}
     ${b.crit.potionBonusPct > 0 ? `
     <div class="bonus-row">
