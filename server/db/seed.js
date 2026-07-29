@@ -499,6 +499,21 @@ function seed() {
   it.sovereignsGreaves = insertItem.get("Sovereign's Greaves", 'legs', 50, 15, 110, 0, 'raid', 0, 'sovereigns_greaves').id;
   it.sovereignsStride = insertItem.get("Sovereign's Stride", 'boots', 50, 15, 75, 0, 'raid', 0, 'sovereigns_stride').id;
 
+  // Choir's Requiem - The Hollow Choir's exclusive 4-piece set, an easier entry-level raid.
+  it.choirsDiscord = insertItem.get("Choir's Discord", 'weapon', 50, 31, 11, 0, 'raid', 0, 'choirs_discord').id;
+  it.choirsVestment = insertItem.get("Choir's Vestment", 'chest', 50, 11, 98, 0, 'raid', 0, 'choirs_vestment').id;
+  it.choirsHalo = insertItem.get("Choir's Halo", 'head', 50, 13, 63, 0, 'raid', 0, 'choirs_halo').id;
+  it.choirsGrasp = insertItem.get("Choir's Grasp", 'hands', 50, 14, 42, 0, 'raid', 0, 'choirs_grasp').id;
+
+  // King's Ruin - The Unraveled King's exclusive 6-piece set, a harder step up from the
+  // Rift Sovereign's Sovereign's Dominion.
+  it.kingsRuinblade = insertItem.get("King's Ruinblade", 'weapon', 50, 59, 20, 0, 'raid', 0, 'kings_ruinblade').id;
+  it.kingsPlate = insertItem.get("King's Plate", 'chest', 50, 20, 182, 0, 'raid', 0, 'kings_plate').id;
+  it.kingsCrown = insertItem.get("King's Crown", 'head', 50, 23, 117, 0, 'raid', 0, 'kings_crown').id;
+  it.kingsGrip = insertItem.get("King's Grip", 'hands', 50, 26, 78, 0, 'raid', 0, 'kings_grip').id;
+  it.kingsGreaves = insertItem.get("King's Greaves", 'legs', 50, 20, 143, 0, 'raid', 0, 'kings_greaves').id;
+  it.kingsStride = insertItem.get("King's Stride", 'boots', 50, 20, 98, 0, 'raid', 0, 'kings_stride').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -542,6 +557,17 @@ function seed() {
   insertSetBonus.run(sovereignsDominionSet, 4, 16, 48);
   insertSetBonus.run(sovereignsDominionSet, 6, 30, 90);
 
+  const choirsRequiemSet = insertSet.get("Choir's Requiem", 'A 4-piece set unraveled from the Hollow Choir - the entry point into raiding.').id;
+  [it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp].forEach(itemId => assignToSet.run(choirsRequiemSet, itemId));
+  insertSetBonus.run(choirsRequiemSet, 2, 6, 18);
+  insertSetBonus.run(choirsRequiemSet, 4, 14, 40);
+
+  const kingsRuinSet = insertSet.get("King's Ruin", "A full 6-piece set stripped from the Unraveled King - the hardest raid a clan can face.").id;
+  [it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride].forEach(itemId => assignToSet.run(kingsRuinSet, itemId));
+  insertSetBonus.run(kingsRuinSet, 2, 10, 31);
+  insertSetBonus.run(kingsRuinSet, 4, 21, 62);
+  insertSetBonus.run(kingsRuinSet, 6, 39, 117);
+
   const wardensRegaliaSet = insertSet.get("Warden's Regalia", "Weapon, plate, and grip stripped from the Underworks' ruler.").id;
   [it.wardensCleaver, it.underworksPlate, it.wardensGrip].forEach(itemId => assignToSet.run(wardensRegaliaSet, itemId));
   insertSetBonus.run(wardensRegaliaSet, 2, 15, 40);   // any 2 pieces
@@ -563,7 +589,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {

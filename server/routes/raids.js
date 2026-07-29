@@ -7,7 +7,8 @@ const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp, canManageClan } = require('../clans');
 const { getEquippedBonuses } = require('./character');
 const {
-  RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_LAUNCH,
+  RAID_BOSSES, getRaidBoss, listRaidBosses,
+  GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_LAUNCH,
   getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 } = require('../raids');
 
@@ -35,12 +36,14 @@ function getBoostedMaxHp(character) {
 }
 
 function serializeRaid(raid) {
+  const boss = getRaidBoss(raid.boss_key);
   const participants = db.prepare('SELECT character_id, character_name, damage_dealt, is_ready FROM raid_participants WHERE raid_id = ? ORDER BY id ASC').all(raid.id);
   const result = {
     id: raid.id,
     status: raid.status,
-    bossName: RAID_BOSS.name,
-    bossImage: RAID_BOSS.image,
+    bossKey: raid.boss_key,
+    bossName: boss.name,
+    bossImage: boss.image,
     maxHp: raid.max_hp,
     currentHp: raid.current_hp,
     partyMaxHp: raid.party_max_hp,
@@ -56,6 +59,10 @@ function serializeRaid(raid) {
   }
   return result;
 }
+
+router.get('/bosses', requireAuth, (req, res) => {
+  res.json({ bosses: listRaidBosses() });
+});
 
 router.get('/current', requireAuth, requireCharacter, (req, res) => {
   if (!req.character.clan_id) {
@@ -73,17 +80,22 @@ router.post('/create', requireAuth, requireCharacter, (req, res) => {
   if (!canManageClan(req.character)) {
     return res.status(403).json({ error: 'Only the Leader or an Officer can start a raid.' });
   }
+  const { bossKey } = req.body;
+  if (!bossKey || !RAID_BOSSES[bossKey]) {
+    return res.status(400).json({ error: 'Choose a valid raid boss.' });
+  }
   expireStaleGatheringRaids();
   const existing = db.prepare(`SELECT id FROM raids WHERE clan_id = ? AND status IN ('gathering', 'active')`).get(req.character.clan_id);
   if (existing) {
     return res.status(400).json({ error: 'Your clan already has an active raid.' });
   }
 
+  const boss = getRaidBoss(bossKey);
   const gatheringExpiresAt = new Date(Date.now() + GATHERING_WINDOW_MINUTES * 60 * 1000).toISOString();
   const result = db.prepare(`
-    INSERT INTO raids (clan_id, status, max_hp, current_hp, created_by_name, gathering_expires_at)
-    VALUES (?, 'gathering', ?, ?, ?, ?)
-  `).run(req.character.clan_id, RAID_BOSS.maxHp, RAID_BOSS.maxHp, req.character.name, gatheringExpiresAt);
+    INSERT INTO raids (clan_id, status, boss_key, max_hp, current_hp, created_by_name, gathering_expires_at)
+    VALUES (?, 'gathering', ?, ?, ?, ?, ?)
+  `).run(req.character.clan_id, boss.key, boss.maxHp, boss.maxHp, req.character.name, gatheringExpiresAt);
 
   db.prepare('INSERT INTO raid_participants (raid_id, character_id, character_name) VALUES (?, ?, ?)')
     .run(result.lastInsertRowid, req.character.id, req.character.name);
@@ -117,8 +129,8 @@ router.post('/:id/join', requireAuth, requireCharacter, (req, res) => {
 });
 
 // The Leader/Officer decides when to launch, with however many members have joined at
-// that point - no automatic activation at a fixed headcount. This is the one moment the
-// roster locks and the party's combined Max HP gets snapshotted as the shared health bar.
+// that point (at least the enforced minimum). This is the one moment the roster locks and
+// the party's combined Max HP gets snapshotted as the shared health bar.
 router.post('/:id/launch', requireAuth, requireCharacter, (req, res) => {
   const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
   if (!raid || raid.clan_id !== req.character.clan_id) {
@@ -147,13 +159,11 @@ router.post('/:id/launch', requireAuth, requireCharacter, (req, res) => {
   res.json({ raid: serializeRaid(updated) });
 });
 
-// Runs the ENTIRE fight to its conclusion in one call, once everyone has readied up -
-// no more repeating the ready-up cycle every single round, which is what made the
-// original per-round design tedious in practice (confirmed by actual play). Each
-// participant's Attack is computed once at the start (not re-queried every simulated
-// round - there's no meaningful time for gear/potions to change mid-resolution anyway),
-// and the loop runs until either side hits 0, capped defensively so a freak edge case
-// (e.g. a party with 0 combined Attack) can't hang the server.
+// Runs the ENTIRE fight to its conclusion in one call - no ready-up cycle, available the
+// instant the raid launches. Each participant's Attack is computed once at the start (not
+// re-queried every simulated round), and the loop runs until either side hits 0, capped
+// defensively so a freak edge case (e.g. a party with 0 combined Attack) can't hang the
+// server.
 const MAX_SIMULATED_ROUNDS = 500;
 
 router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
@@ -186,7 +196,7 @@ router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
 
   while (bossHp > 0 && partyHp > 0 && round - raid.current_round < MAX_SIMULATED_ROUNDS) {
     bossHp = Math.max(0, bossHp - totalPartyAttack);
-    const bossDamage = computeBossDamageToParty(participants.length);
+    const bossDamage = computeBossDamageToParty(raid.boss_key, participants.length);
     partyHp = Math.max(0, partyHp - bossDamage);
     roundLog.push({ round, damageToBoss: totalPartyAttack, damageToParty: bossDamage });
     participants.forEach((p) => {
@@ -198,7 +208,7 @@ router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
 
   let rewardSummary = null;
   if (bossHp <= 0) {
-    rewardSummary = distributeRaidRewards(raid.id);
+    rewardSummary = distributeRaidRewards(raid.id, raid.boss_key);
   } else if (partyHp <= 0) {
     db.prepare("UPDATE raids SET status = 'failed', current_hp = ?, party_current_hp = 0, current_round = ?, completed_at = ? WHERE id = ?")
       .run(bossHp, round, new Date().toISOString(), raid.id);
@@ -215,12 +225,13 @@ router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
 
 // Guaranteed rewards for every participant who dealt damage across the whole fight
 // (cumulative damage_dealt, not just the final round) - split by their overall damage
-// share, plus one randomly-chosen piece from the exclusive Sovereign's Dominion set each.
-function distributeRaidRewards(raidId) {
+// share, plus one randomly-chosen piece from that boss's exclusive set each.
+function distributeRaidRewards(raidId, bossKey) {
+  const boss = getRaidBoss(bossKey);
   const allParticipants = db.prepare('SELECT * FROM raid_participants WHERE raid_id = ?').all(raidId);
   const participants = allParticipants.filter((p) => p.damage_dealt > 0);
   const totalDamage = participants.reduce((sum, p) => sum + p.damage_dealt, 0) || 1;
-  const rewardItemIds = getRaidRewardItemIds();
+  const rewardItemIds = getRaidRewardItemIds(bossKey);
 
   const results = participants.map((p) => {
     const share = p.damage_dealt / totalDamage;
@@ -228,8 +239,8 @@ function distributeRaidRewards(raidId) {
     const skillEffects = getSkillEffects(p.character_id);
     const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(p.character_id);
     const clanEffects = getClanPerkEffects(character ? character.clan_id : null);
-    const expShare = Math.max(1, Math.round(RAID_BOSS.totalExpReward * share * skillEffects.expMult * potionEffects.expMult));
-    const goldShare = Math.max(1, Math.round(RAID_BOSS.totalGoldReward * share * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult));
+    const expShare = Math.max(1, Math.round(boss.totalExpReward * share * skillEffects.expMult * potionEffects.expMult));
+    const goldShare = Math.max(1, Math.round(boss.totalGoldReward * share * skillEffects.goldMult * potionEffects.goldMult * clanEffects.goldMult));
 
     let rewardItemName = null;
     if (character) {

@@ -422,6 +422,7 @@ CREATE TABLE IF NOT EXISTS raids (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   clan_id INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'gathering', -- gathering | active | completed | failed | expired
+  boss_key TEXT NOT NULL DEFAULT 'rift_sovereign', -- which of the raid boss catalog this fight is against
   max_hp INTEGER NOT NULL,
   current_hp INTEGER NOT NULL,
   -- The party's shared HP pool - snapshotted once when the raid activates (roster locks
@@ -564,6 +565,7 @@ ensureColumn('raids', 'party_current_hp', 'INTEGER');
 ensureColumn('raids', 'current_round', 'INTEGER DEFAULT 1');
 ensureColumn('raid_participants', 'is_ready', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'active_pet_template_id', 'INTEGER');
+ensureColumn('raids', 'boss_key', "TEXT DEFAULT 'rift_sovereign'");
 
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually

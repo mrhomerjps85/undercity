@@ -363,8 +363,15 @@ Everyone shares the same world, monsters, and leaderboard.
   into turn-based group combat, then simplified further based on how it
   actually felt to play. A real departure from every other fight in the
   game (which all reset to full HP every time and can't be permanently
-  lost). A Leader/Officer starts a raid against **The Rift Sovereign**,
-  which sits in **gathering** while any number of clan members join -
+  lost). A Leader/Officer picks which of **3 raid bosses** to challenge
+  when starting a raid - **The Hollow Choir** (easier entry-level, 15,000
+  HP, 4-piece "Choir's Requiem" set), **The Rift Sovereign** (mid-tier,
+  30,000 HP, 6-piece "Sovereign's Dominion"), or **The Unraveled King**
+  (hardest, 60,000 HP, 6-piece "King's Ruin") - each with its own
+  exclusive item pool, verified independently live (fought all three to
+  a real victory and confirmed each one's rewards came from its own set,
+  never a different boss's items). The chosen raid sits in **gathering**
+  while any number of clan members join -
   but launching requires an **enforced minimum of 3** (verified live:
   launching with 2 correctly rejected, 3 correctly succeeds). The
   Leader/Officer can **Launch** whenever they want once that minimum is

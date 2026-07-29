@@ -194,3 +194,15 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | pet_ancient_tortoise.svg | tortoise | delapouite |
 | pet_starlight_fox.svg | flying-fox | delapouite |
 | pet_reapers_familiar.svg | grim-reaper | lorc |
+| hollow_choir.svg | screaming | lorc |
+| unraveled_king.svg | old-king | cathelineau |
+| choirs_discord.svg | bone-knife | delapouite |
+| choirs_vestment.svg | robe | lorc |
+| choirs_halo.svg | warlock-hood | delapouite |
+| choirs_grasp.svg | skeletal-hand | delapouite |
+| kings_ruinblade.svg | rusty-sword | delapouite |
+| kings_plate.svg | armor-vest | lorc |
+| kings_crown.svg | sharp-crown | lorc |
+| kings_grip.svg | gauntlet | delapouite |
+| kings_greaves.svg | greaves | delapouite |
+| kings_stride.svg | steeltoe-boots | lorc |

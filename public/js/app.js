@@ -1481,23 +1481,44 @@ async function loadRaidSection(character, canManage) {
   }
 }
 
-function renderRaidSection(el, raid, character, canManage) {
+async function renderRaidSection(el, raid, character, canManage) {
   if (!raid) {
+    if (!canManage) {
+      el.innerHTML = '<p class="hint">No raid in progress. Only the Leader or an Officer can start one.</p>';
+      return;
+    }
+    let bosses = [];
+    try {
+      const data = await api('/raids/bosses');
+      bosses = data.bosses;
+    } catch (err) {
+      el.innerHTML = `<p class="empty-msg">${err.message}</p>`;
+      return;
+    }
     el.innerHTML = `
-      <p class="hint">No raid in progress. The Rift Sovereign needs at least 3 clan members to fight - guaranteed rewards for everyone who lands a hit.</p>
-      ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Raid</button>' : '<p class="hint">Only the Leader or an Officer can start one.</p>'}
+      <p class="hint">Choose a raid boss to challenge. Needs at least 3 clan members to launch - guaranteed rewards for everyone who lands a hit.</p>
+      <div class="pets-list">
+        ${bosses.map((b) => `
+          <div class="pet-card">
+            <img class="pet-icon" src="/images/monsters/${b.image}.svg" alt="" />
+            <div class="pet-name">${b.name}</div>
+            <div class="pet-count">Lv.${b.level} - ${b.maxHp.toLocaleString()} HP</div>
+            <button class="btn-primary pet-activate-btn" data-boss-key="${b.key}">Start This Raid</button>
+          </div>
+        `).join('')}
+      </div>
     `;
-    if (canManage) {
-      document.getElementById('start-raid-btn').addEventListener('click', async () => {
+    el.querySelectorAll('.pet-activate-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
         try {
-          await api('/raids/create', { method: 'POST' });
+          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: btn.dataset.bossKey }) });
           showToast('Raid started! Waiting for members to join.');
           loadClanPanel();
         } catch (err) {
           showToast(err.message, true);
         }
       });
-    }
+    });
     return;
   }
 
@@ -1563,14 +1584,14 @@ function renderRaidSection(el, raid, character, canManage) {
     el.innerHTML = `
       <div class="bonus-breakdown-box">
         <h4 class="subheading">${raid.bossName} - The party fell (Round ${raid.currentRound})</h4>
-        <p class="hint">The Rift Sovereign's damage exceeded the party's combined HP. No rewards this attempt.</p>
+        <p class="hint">${raid.bossName}'s damage exceeded the party's combined HP. No rewards this attempt.</p>
       </div>
       ${canManage ? '<button class="btn-primary" id="start-raid-btn">Try Again</button>' : ''}
     `;
     if (canManage) {
       document.getElementById('start-raid-btn').addEventListener('click', async () => {
         try {
-          await api('/raids/create', { method: 'POST' });
+          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
           showToast('Raid started! Waiting for members to join.');
           loadClanPanel();
         } catch (err) {
@@ -1597,7 +1618,7 @@ function renderRaidSection(el, raid, character, canManage) {
     if (canManage) {
       document.getElementById('start-raid-btn').addEventListener('click', async () => {
         try {
-          await api('/raids/create', { method: 'POST' });
+          await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
           showToast('Raid started! Waiting for members to join.');
           loadClanPanel();
         } catch (err) {
@@ -1610,13 +1631,13 @@ function renderRaidSection(el, raid, character, canManage) {
 
   // expired
   el.innerHTML = `
-    <p class="hint">The last raid expired without enough members joining in time.</p>
+    <p class="hint">The last raid (${raid.bossName}) expired without enough members joining in time.</p>
     ${canManage ? '<button class="btn-primary" id="start-raid-btn">Start Raid</button>' : ''}
   `;
   if (canManage) {
     document.getElementById('start-raid-btn').addEventListener('click', async () => {
       try {
-        await api('/raids/create', { method: 'POST' });
+        await api('/raids/create', { method: 'POST', body: JSON.stringify({ bossKey: raid.bossKey }) });
         showToast('Raid started! Waiting for members to join.');
         loadClanPanel();
       } catch (err) {
@@ -1651,11 +1672,11 @@ async function startRaidFight(raidId) {
   try {
     const data = await api(`/raids/${raidId}/start`, { method: 'POST' });
     if (data.raid.status === 'completed') {
-      showToast(`The Rift Sovereign has fallen after ${data.roundsFought} round${data.roundsFought === 1 ? '' : 's'}! Check the raid section for rewards.`);
+      showToast(`${data.raid.bossName} has fallen after ${data.roundsFought} round${data.roundsFought === 1 ? '' : 's'}! Check the raid section for rewards.`);
     } else if (data.raid.status === 'failed') {
       showToast(`The party fell after ${data.roundsFought} round${data.roundsFought === 1 ? '' : 's'}. No rewards this attempt.`, true);
     } else {
-      showToast(`Fought ${data.roundsFought} rounds - both sides still standing. Ready up again to keep going.`);
+      showToast(`Fought ${data.roundsFought} rounds - both sides still standing. Start again to keep going.`);
     }
     loadClanPanel();
   } catch (err) {
