@@ -7,7 +7,7 @@ const { getSkillEffects } = require('../skills');
 const { getClanPerkEffects, contributeClanXp, canManageClan } = require('../clans');
 const { getEquippedBonuses } = require('./character');
 const {
-  RAID_BOSS, GATHERING_WINDOW_MINUTES, RECOMMENDED_PARTICIPANTS,
+  RAID_BOSS, GATHERING_WINDOW_MINUTES, MIN_PARTICIPANTS_TO_LAUNCH,
   getRaidRewardItemIds, expireStaleGatheringRaids, computeBossDamageToParty,
 } = require('../raids');
 
@@ -49,7 +49,7 @@ function serializeRaid(raid) {
     createdByName: raid.created_by_name,
     gatheringExpiresAt: raid.gathering_expires_at,
     participants,
-    recommendedParticipants: RECOMMENDED_PARTICIPANTS,
+    minParticipantsToLaunch: MIN_PARTICIPANTS_TO_LAUNCH,
   };
   if (raid.status === 'completed' && raid.reward_summary_json) {
     result.rewardSummary = JSON.parse(raid.reward_summary_json);
@@ -131,8 +131,8 @@ router.post('/:id/launch', requireAuth, requireCharacter, (req, res) => {
     return res.status(400).json({ error: 'This raid has already launched.' });
   }
   const participants = db.prepare('SELECT character_id FROM raid_participants WHERE raid_id = ?').all(raid.id);
-  if (participants.length === 0) {
-    return res.status(400).json({ error: 'At least one member needs to join before launching.' });
+  if (participants.length < MIN_PARTICIPANTS_TO_LAUNCH) {
+    return res.status(400).json({ error: `Need at least ${MIN_PARTICIPANTS_TO_LAUNCH} members to launch (currently ${participants.length}).` });
   }
 
   let partyMaxHp = 0;
@@ -142,24 +142,6 @@ router.post('/:id/launch', requireAuth, requireCharacter, (req, res) => {
   });
   db.prepare("UPDATE raids SET status = 'active', party_max_hp = ?, party_current_hp = ? WHERE id = ?")
     .run(partyMaxHp, partyMaxHp, raid.id);
-
-  const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
-  res.json({ raid: serializeRaid(updated) });
-});
-
-router.post('/:id/ready', requireAuth, requireCharacter, (req, res) => {
-  const raid = db.prepare('SELECT * FROM raids WHERE id = ?').get(req.params.id);
-  if (!raid || raid.clan_id !== req.character.clan_id) {
-    return res.status(404).json({ error: 'Raid not found.' });
-  }
-  if (raid.status !== 'active') {
-    return res.status(400).json({ error: 'This raid is not currently active.' });
-  }
-  const participant = db.prepare('SELECT * FROM raid_participants WHERE raid_id = ? AND character_id = ?').get(raid.id, req.character.id);
-  if (!participant) {
-    return res.status(403).json({ error: 'You are not part of this raid.' });
-  }
-  db.prepare('UPDATE raid_participants SET is_ready = 1 WHERE id = ?').run(participant.id);
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);
   res.json({ raid: serializeRaid(updated) });
@@ -186,10 +168,6 @@ router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
   const isParticipant = participants.some((p) => p.character_id === req.character.id);
   if (!isParticipant) {
     return res.status(403).json({ error: 'You are not part of this raid.' });
-  }
-  const allReady = participants.every((p) => p.is_ready);
-  if (!allReady) {
-    return res.status(400).json({ error: 'Not everyone has readied up yet.' });
   }
 
   const attackByParticipant = {};
@@ -229,7 +207,6 @@ router.post('/:id/start', requireAuth, requireCharacter, (req, res) => {
     // the party can simply Start again to keep going, rather than losing progress.
     db.prepare('UPDATE raids SET current_hp = ?, party_current_hp = ?, current_round = ? WHERE id = ?')
       .run(bossHp, partyHp, round, raid.id);
-    db.prepare('UPDATE raid_participants SET is_ready = 0 WHERE raid_id = ?').run(raid.id);
   }
 
   const updated = db.prepare('SELECT * FROM raids WHERE id = ?').get(raid.id);

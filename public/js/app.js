@@ -1504,21 +1504,22 @@ function renderRaidSection(el, raid, character, canManage) {
   const alreadyJoined = raid.participants.some((p) => p.character_id === character.id);
 
   if (raid.status === 'gathering') {
+    const canLaunch = raid.participants.length >= raid.minParticipantsToLaunch;
     el.innerHTML = `
       <div class="bonus-breakdown-box">
         <h4 class="subheading">${raid.bossName} - Gathering</h4>
-        <p class="hint">${raid.participants.length} joined so far (recommended: ${raid.recommendedParticipants}+). Started by ${raid.createdByName}. The Leader or an Officer can launch whenever they're ready.</p>
+        <p class="hint">${raid.participants.length}/${raid.minParticipantsToLaunch} joined. Started by ${raid.createdByName}. The Leader or an Officer can launch once the minimum is met, whenever they're ready.</p>
         ${raid.participants.map((p) => `<div class="bonus-row"><span class="bonus-source">${p.character_name}</span></div>`).join('')}
       </div>
       <div style="display:flex; gap:8px;">
         ${!alreadyJoined ? '<button class="btn-primary" id="join-raid-btn">Join Raid</button>' : '<p class="hint">You have joined.</p>'}
-        ${canManage ? '<button class="btn-attack" id="launch-raid-btn">Launch Raid</button>' : ''}
+        ${canManage ? `<button class="btn-attack" id="launch-raid-btn" ${canLaunch ? '' : 'disabled'}>Launch Raid</button>` : ''}
       </div>
     `;
     if (!alreadyJoined) {
       document.getElementById('join-raid-btn').addEventListener('click', () => joinRaid(raid.id));
     }
-    if (canManage) {
+    if (canManage && canLaunch) {
       document.getElementById('launch-raid-btn').addEventListener('click', () => launchRaid(raid.id));
     }
     return;
@@ -1527,9 +1528,7 @@ function renderRaidSection(el, raid, character, canManage) {
   if (raid.status === 'active') {
     const bossPct = Math.max(0, Math.round((raid.currentHp / raid.maxHp) * 100));
     const partyPct = Math.max(0, Math.round((raid.partyCurrentHp / raid.partyMaxHp) * 100));
-    const readyCount = raid.participants.filter((p) => p.is_ready).length;
     const me = raid.participants.find((p) => p.character_id === character.id);
-    const allReady = readyCount === raid.participants.length;
 
     el.innerHTML = `
       <div class="worldboss-card" style="display:block;">
@@ -1546,23 +1545,15 @@ function renderRaidSection(el, raid, character, canManage) {
         <div class="bar" style="height:16px;"><div class="bar-fill" style="width:${partyPct}%; background:linear-gradient(90deg, var(--teal), var(--teal-bright));"></div></div>
 
         <div class="worldboss-footer" style="margin-top:10px;">
-          <span class="hint">${readyCount}/${raid.participants.length} ready</span>
-          ${me
-            ? (me.is_ready
-              ? `<button class="btn-ghost" disabled>Waiting for others...</button>`
-              : `<button class="btn-primary" id="raid-ready-btn">Ready Up</button>`)
-            : ''}
-          ${allReady ? '<button class="btn-attack" id="raid-resolve-btn">Start Raid</button>' : ''}
+          <span class="hint">${raid.participants.length} participants</span>
+          ${me ? '<button class="btn-attack" id="raid-resolve-btn">Start Raid</button>' : ''}
         </div>
       </div>
       <div class="worldboss-contributors-list" style="margin-top:10px;">
-        ${raid.participants.map((p, i) => `<div class="bonus-row"><span class="bonus-source">${i + 1}. ${p.character_name} ${p.is_ready ? '&#10003;' : ''}</span><span class="bonus-values wbc-dmg">${p.damage_dealt.toLocaleString()} dmg</span></div>`).join('')}
+        ${raid.participants.map((p, i) => `<div class="bonus-row"><span class="bonus-source">${i + 1}. ${p.character_name}</span><span class="bonus-values wbc-dmg">${p.damage_dealt.toLocaleString()} dmg</span></div>`).join('')}
       </div>
     `;
-    if (me && !me.is_ready) {
-      document.getElementById('raid-ready-btn').addEventListener('click', () => readyUpRaid(raid.id));
-    }
-    if (allReady) {
+    if (me) {
       document.getElementById('raid-resolve-btn').addEventListener('click', () => startRaidFight(raid.id));
     }
     return;
@@ -1655,15 +1646,6 @@ async function launchRaid(raidId) {
   }
 }
 
-async function readyUpRaid(raidId) {
-  try {
-    await api(`/raids/${raidId}/ready`, { method: 'POST' });
-    showToast('Readied up! Waiting for the rest of the party.');
-    loadClanPanel();
-  } catch (err) {
-    showToast(err.message, true);
-  }
-}
 
 async function startRaidFight(raidId) {
   try {

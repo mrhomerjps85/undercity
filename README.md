@@ -359,22 +359,22 @@ Everyone shares the same world, monsters, and leaderboard.
   Leader/Officers can assign vault contents to specific members, rather
   than a free-for-all withdraw.
 - **Raids:** clan-exclusive, event-based content (its own section inside
-  the Clan tab), reworked into genuine **turn-based group combat** after
-  initial playtesting - a real departure from every other fight in the
+  the Clan tab), reworked twice after real playtesting feedback - first
+  into turn-based group combat, then simplified further based on how it
+  actually felt to play. A real departure from every other fight in the
   game (which all reset to full HP every time and can't be permanently
   lost). A Leader/Officer starts a raid against **The Rift Sovereign**,
-  which sits in **gathering** with no fixed headcount requirement - any
-  number of clan members can join (3+ is only a suggested guideline shown
-  in the UI, never enforced). The Leader/Officer decides when to
-  **Launch** it, whenever they want, with however many have joined at
-  that point - that's the one moment the roster **locks** (no joining
-  mid-fight) and the party's combined Max HP is snapshotted as a shared
-  health bar. Every locked-in participant **Ready Up**s once, then anyone
-  can **Start the Raid** -
-  at that point the *entire* fight resolves to its conclusion in a single
-  action (each member's Attack computed once, not re-queried every
-  simulated round), rather than repeating the ready-up cycle every round,
-  which initial playtesting found tedious in practice. The party's summed
+  which sits in **gathering** while any number of clan members join -
+  but launching requires an **enforced minimum of 3** (verified live:
+  launching with 2 correctly rejected, 3 correctly succeeds). The
+  Leader/Officer can **Launch** whenever they want once that minimum is
+  met, with however many have joined at that point - that's the one
+  moment the roster **locks** (no joining mid-fight) and the party's
+  combined Max HP is snapshotted as a shared health bar. There's no
+  separate "ready up" step anymore - once launched, any participant can
+  immediately click **Start the Raid**, and the *entire* fight resolves
+  to its conclusion in a single action (each member's Attack computed
+  once, not re-queried every simulated round). The party's summed
   Attack hits the boss and the boss's damage hits the party's shared HP
   pool every simulated round, both persisting and depleting like real
   health bars, capped defensively at 500 simulated rounds so a freak edge
