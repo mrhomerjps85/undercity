@@ -215,3 +215,12 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | scar_sealers_grasp.svg | grasping-claws | lorc |
 | wound_walkers_maw.svg | insect-jaws | lorc |
 | the_scar.svg | earth-crack | lorc |
+| drowned_wretch.svg | drowning | lorc |
+| pale_current.svg | whirlpool-shuriken | darkzaitzev |
+| sunken_remnant.svg | sunken-eye | lorc |
+| abyssal_husk.svg | fish-corpse | lorc |
+| the_waterlogged.svg | water-bolt | lorc |
+| depth_caller.svg | sea-serpent | lorc |
+| depth_callers_grasp.svg | shark-fin | delapouite |
+| depth_callers_trident.svg | trident | lorc |
+| the_undertow.svg | vortex | lorc |

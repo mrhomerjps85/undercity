@@ -78,6 +78,7 @@ function seed() {
   const zoneDocklands = insertZone.get('The Docklands', "Organized crime runs the shipping yards now. Cargo comes in, and sometimes people don't go back out.", 24, 'docklands', 1).id;
   const zoneZhulBreach = insertZone.get('The Zhul Breach', "A tear in reality itself has opened beneath the city. Something ancient is pushing through from the other side.", 35, 'zhul_breach', 1).id;
   const zoneTheScar = insertZone.get('The Scar', "Zhul is dead, but the wound it tore never closed. Something is still crawling out of it - and it's getting stronger.", 50, 'the_scar', 1).id;
+  const zoneUndertow = insertZone.get('The Undertow', "The Scar isn't just leaking anymore. Something on the other side is pulling - and whatever gets close enough goes under.", 55, 'the_undertow', 1).id;
 
   // ---------------------------------------------------------------------
   // ROOMS - each zone is now a 9x9 grid (81 rooms). Names are generated from
@@ -185,6 +186,14 @@ function seed() {
   theScarNames[7][4] = "The Wound-Walker's Throat";
   const theScarGrid = buildGrid(zoneTheScar, theScarNames, 'thescar', theScarEntranceCoord);
 
+  const undertowEntranceCoord = [4, 1];
+  const undertowNames = generateRoomNameGrid(GRID_SIZE, undertowEntranceCoord, 'The Undertow\'s Edge',
+    ['Sinking', 'Submerged', 'Drifting', 'Drowned', 'Pale', 'Silent', 'Crushing', 'Black', 'Cold', 'Churning', 'Suffocating', 'Bottomless', 'Murky', 'Sodden', 'Undrowned', 'Sunken', 'Weeping', 'Frigid', 'Swallowed', 'Deepening'],
+    ['Current', 'Depths', 'Undertow', 'Trench', 'Abyss', 'Flood', 'Tide', 'Whirlpool', 'Basin', 'Channel', 'Hollow', 'Reef', 'Shoal', 'Wreck', 'Drift', 'Passage', 'Cavern', 'Pull', 'Deep', 'Maw']
+  );
+  undertowNames[7][4] = "The Depth-Caller's Grotto";
+  const undertowGrid = buildGrid(zoneUndertow, undertowNames, 'undertow', undertowEntranceCoord);
+
   // ---------------------------------------------------------------------
   // MONSTER TEMPLATES
   // ---------------------------------------------------------------------
@@ -288,6 +297,14 @@ function seed() {
   m.hollowedRemnant = insertMonster.get('Hollowed Remnant', 53, 1209, 81, 31, 0, 0, 'hollowed_remnant').id;
   m.theUnmade = insertMonster.get('The Unmade', 54, 1242, 83, 32, 0, 0, 'the_unmade').id;
   m.woundWalker = insertMonster.get('The Wound-Walker', 55, 4347, 116, 43, 0, 0, 'wound_walker').id;
+
+  // The Undertow (dungeon, levels 55-60) - continuing The Scar's stat growth rate.
+  m.drownedWretch = insertMonster.get('Drowned Wretch', 55, 1275, 85, 33, 0, 0, 'drowned_wretch').id;
+  m.paleCurrent = insertMonster.get('Pale Current', 56, 1308, 87, 34, 0, 0, 'pale_current').id;
+  m.sunkenRemnant = insertMonster.get('Sunken Remnant', 57, 1340, 88, 34, 0, 0, 'sunken_remnant').id;
+  m.abyssalHusk = insertMonster.get('Abyssal Husk', 58, 1373, 90, 35, 0, 0, 'abyssal_husk').id;
+  m.theWaterlogged = insertMonster.get('The Waterlogged', 59, 1406, 92, 36, 0, 0, 'the_waterlogged').id;
+  m.depthCaller = insertMonster.get('The Depth-Caller', 60, 4921, 129, 49, 0, 0, 'depth_caller').id;
 
   // ---------------------------------------------------------------------
   // SPAWN MONSTERS INTO ROOMS - spread across the larger 9x9 grids.
@@ -438,6 +455,22 @@ function seed() {
   spawn(theScarGrid['6,7'], m.theUnmade, 8);
   spawn(theScarGrid['4,7'] /* The Wound-Walker's Throat */, m.woundWalker, 1);
 
+  // The Undertow (dungeon, entrance at 4,1; boss at 4,7 - The Depth-Caller's Grotto).
+  // Spawn counts start high from the outset (learned from The Scar needing a follow-up
+  // fix) - dungeon monsters are shared across every player in the zone, and every
+  // regular monster here is tied to a quest requiring 8-15 kills.
+  spawn(undertowGrid['3,2'], m.drownedWretch, 12);
+  spawn(undertowGrid['5,2'], m.drownedWretch, 12);
+  spawn(undertowGrid['2,3'], m.paleCurrent, 12);
+  spawn(undertowGrid['6,3'], m.paleCurrent, 12);
+  spawn(undertowGrid['2,5'], m.sunkenRemnant, 8);
+  spawn(undertowGrid['6,5'], m.sunkenRemnant, 8);
+  spawn(undertowGrid['4,4'], m.abyssalHusk, 8);
+  spawn(undertowGrid['4,6'], m.abyssalHusk, 8);
+  spawn(undertowGrid['2,7'], m.theWaterlogged, 8);
+  spawn(undertowGrid['6,7'], m.theWaterlogged, 8);
+  spawn(undertowGrid['4,7'] /* The Depth-Caller's Grotto */, m.depthCaller, 1);
+
   // ---------------------------------------------------------------------
   // ITEM TEMPLATES
   // ---------------------------------------------------------------------
@@ -557,6 +590,10 @@ function seed() {
   it.scarSealersGrasp = insertItem.get("Scar-Sealer's Grasp", 'hands', 55, 28, 85, 0, 'quest', 0, 'scar_sealers_grasp').id;
   it.woundWalkersMaw = insertItem.get("Wound-Walker's Maw", 'weapon', 55, 65, 22, 0, 'dungeon', 0, 'wound_walkers_maw').id;
 
+  // The Undertow's exclusive rewards - continuing the same power progression as The Scar.
+  it.depthCallersGrasp = insertItem.get("Depth-Caller's Grasp", 'hands', 60, 31, 94, 0, 'quest', 0, 'depth_callers_grasp').id;
+  it.depthCallersTrident = insertItem.get("Depth-Caller's Trident", 'weapon', 60, 72, 24, 0, 'dungeon', 0, 'depth_callers_trident').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -577,6 +614,7 @@ function seed() {
   insertDrop.run(m.dockmasterKane, it.kanesGoldenAnchor, 0.3);
   insertDrop.run(m.zhulDevourer, it.zhulsCrown, 0.3);
   insertDrop.run(m.woundWalker, it.woundWalkersMaw, 0.3);
+  insertDrop.run(m.depthCaller, it.depthCallersTrident, 0.3);
 
   // ---------------------------------------------------------------------
   // ITEM SETS - bonuses for equipping multiple pieces of a themed set at once.
@@ -633,7 +671,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersGrasp, it.depthCallersTrident],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -940,6 +978,39 @@ function seed() {
     'kill', m.woundWalker, null, 1, 55, qscar5, 0, 0, it.scarSealersGrasp, zoneTheScar
   );
 
+  // The Undertow - the Scar stopped just leaking and started pulling. A 6-quest chain
+  // culminating in Depth-Caller's Grasp (the boss's own drop, Depth-Caller's Trident, is
+  // a separate %-chance drop rather than a quest reward).
+  const qundertow1 = insertQuest.get(
+    'Pulled Under', "People near the Scar have started disappearing without a sound. Something below is doing the pulling.",
+    'kill', m.drownedWretch, null, 15, 55, null, 0, 0, null, zoneUndertow
+  ).id;
+
+  const qundertow2 = insertQuest.get(
+    'Against the Current', "The current itself moves wrong here - and it's fighting back.",
+    'kill', m.paleCurrent, null, 12, 56, qundertow1, 0, 0, null, zoneUndertow
+  ).id;
+
+  const qundertow3 = insertQuest.get(
+    'What Sank', "Whatever went under didn't drown. It just stopped being anything worth saving.",
+    'kill', m.sunkenRemnant, null, 10, 57, qundertow2, 0, 0, null, zoneUndertow
+  ).id;
+
+  const qundertow4 = insertQuest.get(
+    'Waterlogged', "They still move like they're drowning, over and over, forever.",
+    'kill', m.abyssalHusk, null, 8, 58, qundertow3, 0, 0, null, zoneUndertow
+  ).id;
+
+  const qundertow5 = insertQuest.get(
+    'The Last Breath', "There's nothing human left in this one. There might not have been anything human in it for a while.",
+    'kill', m.theWaterlogged, null, 8, 59, qundertow4, 0, 0, null, zoneUndertow
+  ).id;
+
+  insertQuest.get(
+    'The Depth-Caller', "At the bottom of the Undertow, something has been doing the pulling all along. Time to meet it.",
+    'kill', m.depthCaller, null, 1, 60, qundertow5, 0, 0, it.depthCallersGrasp, zoneUndertow
+  );
+
   // ---------------------------------------------------------------------
   // WORLD BOSS - shared server-wide fight, placed at the Main St. entrance (Town Square)
   // so every character passes through it naturally. Anyone can chip in regardless of level;
@@ -1014,7 +1085,7 @@ function seed() {
   insertPet.get("Reaper's Familiar", 'mythic', 'crit', 2.5, 'pet_reapers_familiar', 'Knows exactly where to strike. Always has.');
 
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
-  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon)`);
+  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon), The Undertow (Lv.55, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);
 
   db.rebalanceMonsterRewards();

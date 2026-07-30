@@ -83,7 +83,7 @@ Everyone shares the same world, monsters, and leaderboard.
   reappearing. Verified live: a level 22 dungeon monster respawns in
   exactly 65s, a level 1 regular-zone monster in exactly 14s. Rooms can
   and do hold multiple copies of the same monster.
-- **Quests:** 35 quests spanning levels 1-55, no gaps — kill quests and
+- **Quests:** 41 quests spanning levels 1-60, no gaps — kill quests and
   collect quests (gather N of an item a monster drops), some chained via
   prerequisites. Quests auto-complete and grant rewards the moment progress
   is met; collect quests consume the gathered items on completion. **All
@@ -149,7 +149,7 @@ Everyone shares the same world, monsters, and leaderboard.
   and Blacksite.
 - **The Scar (dungeon, Lv.50-55) - the new level cap, raised from 50 to
   65:** Zhul is dead, but the wound it tore never closed - the first of
-  three planned zones continuing that storyline ("the rift cracked
+  three zones continuing that storyline ("the rift cracked
   wider") rather than treating the Devourer's defeat as a hard ending.
   6 new monsters continuing Zhul Breach's own stat-growth rate rather
   than guessed from scratch, a 5-quest chain (`What Crawled Out → The
@@ -165,6 +165,28 @@ Everyone shares the same world, monsters, and leaderboard.
   catching a real bug where the boss wasn't registered in the reward
   system's named-boss list and was earning a regular monster's payout
   despite having 4x the HP. **Rebirth now requires level 65**, not 50.
+  Spawn counts were quadrupled after launch (verified by rolling a test
+  database back to the original low counts and confirming a redeploy
+  correctly tops them back up) - dungeon monsters are shared across
+  every player in the zone, and the original density wasn't enough for
+  quests requiring 8-15 kills once more than a handful of people are
+  questing here at once.
+- **The Undertow (dungeon, Lv.55-60):** the second of the three zones -
+  the Scar stopped just leaking and started pulling things in. 6 more
+  monsters continuing The Scar's own growth rate, spawned at the
+  higher density from the start this time (no follow-up fix needed,
+  unlike The Scar), and the boss immediately registered in the reward
+  system's named-boss list at the same time it was added - both lessons
+  carried forward directly from building The Scar. A 6-quest chain
+  (`Pulled Under → Against the Current → What Sank → Waterlogged → The
+  Last Breath → The Depth-Caller`) and two more Legendary exclusives -
+  **Depth-Caller's Grasp** (quest reward) and **Depth-Caller's Trident**
+  (30% boss drop). Verified the same way as The Scar: played the entire
+  chain through real combat, confirmed the boss's reward multiplier was
+  correct on the very first check (`7,000 = round(2,800 × 2.5)`, no bug
+  this time), and confirmed the final boss kill correctly granted *both*
+  the quest reward and, independently, rolled the boss drop in the same
+  fight.
 - **Mythic rarity + Zhul's Blessing:** a new tier above Legendary, used
   exclusively by this quest chain's rewards (Zhul's Grasp, Aegis,
   Annihilator, and Crown - the last a repeatable bonus drop from the final
