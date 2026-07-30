@@ -218,14 +218,15 @@ router.get('/profile/:name', requireAuth, (req, res) => {
   });
 });
 
-// Rebirth (prestige): available at level 50. Resets level/exp/allocated stat points back
+// Rebirth (prestige): available at level 65 (the new cap, extended from 50 to cover the
+// Scar/Bleeding Dark/Second Rift zones). Resets level/exp/allocated stat points back
 // to a fresh start, but keeps gold and inventory - a full wipe would just be punishing, and
 // keeping gear is the whole appeal of steamrolling early levels on the way back up. Grants
 // a small permanent stat bonus (baked into computeDerivedStats via rebirth_count) that
 // stacks with every future rebirth, and moves the character back to Main St.'s entrance.
 router.post('/rebirth', requireAuth, requireCharacter, (req, res) => {
-  if (req.character.level < 50) {
-    return res.status(400).json({ error: 'Rebirth requires level 50.' });
+  if (req.character.level < 65) {
+    return res.status(400).json({ error: 'Rebirth requires level 65.' });
   }
 
   const mainStEntrance = db.prepare(`

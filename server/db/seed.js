@@ -77,6 +77,7 @@ function seed() {
   const zoneBlacksite = insertZone.get('The Blacksite', 'An off-the-books corporate research facility. Whatever they were building here, it got loose.', 18, 'blacksite', 1).id;
   const zoneDocklands = insertZone.get('The Docklands', "Organized crime runs the shipping yards now. Cargo comes in, and sometimes people don't go back out.", 24, 'docklands', 1).id;
   const zoneZhulBreach = insertZone.get('The Zhul Breach', "A tear in reality itself has opened beneath the city. Something ancient is pushing through from the other side.", 35, 'zhul_breach', 1).id;
+  const zoneTheScar = insertZone.get('The Scar', "Zhul is dead, but the wound it tore never closed. Something is still crawling out of it - and it's getting stronger.", 50, 'the_scar', 1).id;
 
   // ---------------------------------------------------------------------
   // ROOMS - each zone is now a 9x9 grid (81 rooms). Names are generated from
@@ -176,6 +177,14 @@ function seed() {
   zhulBreachNames[7][4] = "The Devourer's Maw";
   const zhulBreachGrid = buildGrid(zoneZhulBreach, zhulBreachNames, 'zhulbreach', zhulBreachEntranceCoord);
 
+  const theScarEntranceCoord = [4, 1];
+  const theScarNames = generateRoomNameGrid(GRID_SIZE, theScarEntranceCoord, 'The Wound\'s Edge',
+    ['Raw', 'Festering', 'Jagged', 'Seeping', 'Torn', 'Pulsing', 'Unhealed', 'Splintered', 'Weeping', 'Corroded', 'Livid', 'Puckered', 'Inflamed', 'Ruptured', 'Gnarled', 'Blistered', 'Grieving', 'Sundered', 'Marred', 'Aching'],
+    ['Scar', 'Gash', 'Rift', 'Tissue', 'Wound', 'Fissure', 'Cavity', 'Laceration', 'Trench', 'Gouge', 'Hollow', 'Cleft', 'Chasm', 'Rupture', 'Passage', 'Sinew', 'Vein', 'Fracture', 'Mouth', 'Depths']
+  );
+  theScarNames[7][4] = "The Wound-Walker's Throat";
+  const theScarGrid = buildGrid(zoneTheScar, theScarNames, 'thescar', theScarEntranceCoord);
+
   // ---------------------------------------------------------------------
   // MONSTER TEMPLATES
   // ---------------------------------------------------------------------
@@ -269,6 +278,16 @@ function seed() {
   m.voidboundHorror = insertMonster.get('Voidbound Horror', 43, 870, 62, 24, 1550, 775, 'voidbound_horror').id;
   m.zhulHerald = insertMonster.get('Zhul Herald', 46, 980, 68, 26, 1850, 925, 'zhul_herald').id;
   m.zhulDevourer = insertMonster.get('Zhul, the Devourer', 50, 3500, 95, 35, 15000, 7500, 'zhul_devourer').id;
+
+  // The Scar (dungeon, levels 50-55) - Zhul is dead, but the wound never closed. Reward
+  // values are placeholders (0) - rebalanceMonsterRewards() recalculates them from level
+  // right after seeding, same as every other zone since Docklands.
+  m.scarWretch = insertMonster.get('Scar Wretch', 50, 1111, 76, 29, 0, 0, 'scar_wretch').id;
+  m.bleedingHusk = insertMonster.get('Bleeding Husk', 51, 1144, 78, 30, 0, 0, 'bleeding_husk').id;
+  m.riftTouchedStalker = insertMonster.get('Rift-Touched Stalker', 52, 1176, 79, 30, 0, 0, 'rift_touched_stalker').id;
+  m.hollowedRemnant = insertMonster.get('Hollowed Remnant', 53, 1209, 81, 31, 0, 0, 'hollowed_remnant').id;
+  m.theUnmade = insertMonster.get('The Unmade', 54, 1242, 83, 32, 0, 0, 'the_unmade').id;
+  m.woundWalker = insertMonster.get('The Wound-Walker', 55, 4347, 116, 43, 0, 0, 'wound_walker').id;
 
   // ---------------------------------------------------------------------
   // SPAWN MONSTERS INTO ROOMS - spread across the larger 9x9 grids.
@@ -401,6 +420,19 @@ function seed() {
   spawn(zhulBreachGrid['6,7'], m.zhulHerald, 2);
   spawn(zhulBreachGrid['4,7'] /* The Devourer's Maw */, m.zhulDevourer, 1);
 
+  // The Scar (dungeon, entrance at 4,1; boss at 4,7 - The Wound-Walker's Throat)
+  spawn(theScarGrid['3,2'], m.scarWretch, 3);
+  spawn(theScarGrid['5,2'], m.scarWretch, 3);
+  spawn(theScarGrid['2,3'], m.bleedingHusk, 3);
+  spawn(theScarGrid['6,3'], m.bleedingHusk, 3);
+  spawn(theScarGrid['2,5'], m.riftTouchedStalker, 2);
+  spawn(theScarGrid['6,5'], m.riftTouchedStalker, 2);
+  spawn(theScarGrid['4,4'], m.hollowedRemnant, 2);
+  spawn(theScarGrid['4,6'], m.hollowedRemnant, 2);
+  spawn(theScarGrid['2,7'], m.theUnmade, 2);
+  spawn(theScarGrid['6,7'], m.theUnmade, 2);
+  spawn(theScarGrid['4,7'] /* The Wound-Walker's Throat */, m.woundWalker, 1);
+
   // ---------------------------------------------------------------------
   // ITEM TEMPLATES
   // ---------------------------------------------------------------------
@@ -514,6 +546,12 @@ function seed() {
   it.kingsGreaves = insertItem.get("King's Greaves", 'legs', 50, 20, 143, 0, 'raid', 0, 'kings_greaves').id;
   it.kingsStride = insertItem.get("King's Stride", 'boots', 50, 20, 98, 0, 'raid', 0, 'kings_stride').id;
 
+  // The Scar's exclusive rewards - one quest reward, one boss-kill drop. Legendary, not
+  // mythic - Zhul's Blessing stays the singular "ultimate" mythic tier, this is the next
+  // chapter's strong reward, not a replacement for it.
+  it.scarSealersGrasp = insertItem.get("Scar-Sealer's Grasp", 'hands', 55, 28, 85, 0, 'quest', 0, 'scar_sealers_grasp').id;
+  it.woundWalkersMaw = insertItem.get("Wound-Walker's Maw", 'weapon', 55, 65, 22, 0, 'dungeon', 0, 'wound_walkers_maw').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -533,6 +571,7 @@ function seed() {
   insertDrop.run(m.theOverseer, it.overseerCore, 0.3);
   insertDrop.run(m.dockmasterKane, it.kanesGoldenAnchor, 0.3);
   insertDrop.run(m.zhulDevourer, it.zhulsCrown, 0.3);
+  insertDrop.run(m.woundWalker, it.woundWalkersMaw, 0.3);
 
   // ---------------------------------------------------------------------
   // ITEM SETS - bonuses for equipping multiple pieces of a themed set at once.
@@ -589,7 +628,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -863,6 +902,39 @@ function seed() {
     'kill', m.zhulDevourer, null, 1, 47, qz4, 15000, 7500, it.zhulsAnnihilator, zoneZhulBreach
   );
 
+  // The Scar - Zhul is dead, but the wound never closed. A 5-quest chain culminating in
+  // Scar-Sealer's Grasp, a Legendary piece (the Wound-Walker's own drop, Wound-Walker's
+  // Maw, is a separate %-chance boss drop rather than a quest reward).
+  const qscar1 = insertQuest.get(
+    'What Crawled Out', "Zhul is dead. The wound it left isn't healing - it's leaking. Something needs to hold the line.",
+    'kill', m.scarWretch, null, 15, 50, null, 0, 0, null, zoneTheScar
+  ).id;
+
+  const qscar2 = insertQuest.get(
+    'The Wound Weeps', 'Whatever these things once were, the Scar has hollowed them into something else entirely.',
+    'kill', m.bleedingHusk, null, 12, 51, qscar1, 0, 0, null, zoneTheScar
+  ).id;
+
+  const qscar3 = insertQuest.get(
+    'Touched, Not Taken', "They move like something is puppeting them from just beyond what you can see.",
+    'kill', m.riftTouchedStalker, null, 10, 52, qscar2, 0, 0, null, zoneTheScar
+  ).id;
+
+  const qscar4 = insertQuest.get(
+    'What Remains', "There's less and less of a person left in each one you put down.",
+    'kill', m.hollowedRemnant, null, 8, 53, qscar3, 0, 0, null, zoneTheScar
+  ).id;
+
+  const qscar5 = insertQuest.get(
+    'Unmaking', "At the deepest point of the Scar, something has stopped pretending to be anything at all.",
+    'kill', m.theUnmade, null, 8, 54, qscar4, 0, 0, null, zoneTheScar
+  ).id;
+
+  insertQuest.get(
+    "The Wound-Walker", 'It doesn\'t walk through the Scar. The Scar walks through it. End it before it finishes waking up.',
+    'kill', m.woundWalker, null, 1, 55, qscar5, 0, 0, it.scarSealersGrasp, zoneTheScar
+  );
+
   // ---------------------------------------------------------------------
   // WORLD BOSS - shared server-wide fight, placed at the Main St. entrance (Town Square)
   // so every character passes through it naturally. Anyone can chip in regardless of level;
@@ -937,7 +1009,7 @@ function seed() {
   insertPet.get("Reaper's Familiar", 'mythic', 'crit', 2.5, 'pet_reapers_familiar', 'Knows exactly where to strike. Always has.');
 
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
-  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon)`);
+  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);
 
   db.rebalanceMonsterRewards();

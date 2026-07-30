@@ -206,3 +206,12 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | kings_grip.svg | gauntlet | delapouite |
 | kings_greaves.svg | greaves | delapouite |
 | kings_stride.svg | steeltoe-boots | lorc |
+| scar_wretch.svg | shambling-zombie | delapouite |
+| bleeding_husk.svg | bleeding-wound | lorc |
+| rift_touched_stalker.svg | half-body-crawling | delapouite |
+| hollowed_remnant.svg | soul-vessel | delapouite |
+| the_unmade.svg | empty-hourglass | lorc |
+| wound_walker.svg | shattered-glass | lorc |
+| scar_sealers_grasp.svg | grasping-claws | lorc |
+| wound_walkers_maw.svg | insect-jaws | lorc |
+| the_scar.svg | earth-crack | lorc |

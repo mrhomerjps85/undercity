@@ -516,12 +516,12 @@ function renderRebirthCard(npcs) {
   document.getElementById('rebirth-name').textContent = elder.name;
   document.getElementById('rebirth-quote').textContent = elder.description || '';
 
-  const eligible = state.character.level >= 50;
+  const eligible = state.character.level >= 65;
   const statusEl = document.getElementById('rebirth-status');
   const btn = document.getElementById('rebirth-btn');
   statusEl.textContent = eligible
     ? `Rebirths so far: ${state.character.rebirth_count || 0}`
-    : 'Requires level 50.';
+    : 'Requires level 65.';
   btn.disabled = !eligible;
 }
 

@@ -83,7 +83,7 @@ Everyone shares the same world, monsters, and leaderboard.
   reappearing. Verified live: a level 22 dungeon monster respawns in
   exactly 65s, a level 1 regular-zone monster in exactly 14s. Rooms can
   and do hold multiple copies of the same monster.
-- **Quests:** 29 quests spanning levels 1-50, no gaps — kill quests and
+- **Quests:** 35 quests spanning levels 1-55, no gaps — kill quests and
   collect quests (gather N of an item a monster drops), some chained via
   prerequisites. Quests auto-complete and grant rewards the moment progress
   is met; collect quests consume the gathered items on completion. **All
@@ -134,18 +134,37 @@ Everyone shares the same world, monsters, and leaderboard.
   the "kills needed per level" pacing stays consistent even as more content
   gets added later, instead of silently drifting out of sync the way the
   original hand-picked values did across several separate content passes.
-- **The Zhul Breach (dungeon, Lv.35+) - the current level cap:** the game's
-  endgame finale. A longer 5-quest chain (`Cracks in Reality → Cult of the
-  Breach → Echoes of the Warden → Into the Void → The Devourer's End`)
-  culminating in a fight with **Zhul, the Devourer** (level 50). This boss
-  is intentionally brutal - an ungeared level 50 character has essentially
-  no chance (verified at 0% simulated win rate), but a properly-geared one
-  (tested with a full Legendary loadout, no Mythic even) sits around
-  90-100%, so it's meant to be a real gear check rather than a guaranteed
-  win. Two "bridging" quests (`Brood of the Deep`, `Prototype Purge`) fill
+- **The Zhul Breach (dungeon, Lv.35+) - the original endgame finale, since
+  extended by The Scar below:** the story's climax at the time. A longer
+  5-quest chain (`Cracks in Reality → Cult of the Breach → Echoes of the
+  Warden → Into the Void → The Devourer's End`) culminating in a fight
+  with **Zhul, the Devourer** (level 50). This boss is intentionally
+  brutal - an ungeared level 50 character has essentially no chance
+  (verified at 0% simulated win rate), but a properly-geared one (tested
+  with a full Legendary loadout, no Mythic even) sits around 90-100%, so
+  it's meant to be a real gear check rather than a guaranteed win. Two
+  "bridging" quests (`Brood of the Deep`, `Prototype Purge`) fill
   the gap between the older dungeons' level-28/30 caps and this zone's
   level-35 floor, using two new monsters added to the existing Underworks
   and Blacksite.
+- **The Scar (dungeon, Lv.50-55) - the new level cap, raised from 50 to
+  65:** Zhul is dead, but the wound it tore never closed - the first of
+  three planned zones continuing that storyline ("the rift cracked
+  wider") rather than treating the Devourer's defeat as a hard ending.
+  6 new monsters continuing Zhul Breach's own stat-growth rate rather
+  than guessed from scratch, a 5-quest chain (`What Crawled Out → The
+  Wound Weeps → Touched, Not Taken → What Remains → Unmaking → The
+  Wound-Walker`) culminating in the boss quest, and two Legendary
+  exclusives - **Scar-Sealer's Grasp** (the quest reward) and
+  **Wound-Walker's Maw** (a 30% boss-kill drop, found independently of
+  the quest). Deliberately kept at Legendary rather than Mythic - Zhul's
+  Blessing stays the singular "ultimate" reward. Verified by actually
+  playing the full quest chain end-to-end through real combat (not just
+  seeding it and assuming it works): accepted each quest, killed the
+  target monster, and confirmed every reward matched exactly, including
+  catching a real bug where the boss wasn't registered in the reward
+  system's named-boss list and was earning a regular monster's payout
+  despite having 4x the HP. **Rebirth now requires level 65**, not 50.
 - **Mythic rarity + Zhul's Blessing:** a new tier above Legendary, used
   exclusively by this quest chain's rewards (Zhul's Grasp, Aegis,
   Annihilator, and Crown - the last a repeatable bonus drop from the final
@@ -190,7 +209,7 @@ Everyone shares the same world, monsters, and leaderboard.
   so it's not just a fleeting live moment - a "View Last Kill" button on
   the boss card fetches and shows the same breakdown for the most recent
   kill at any time afterward.
-- **Prestige (rebirth):** at level 50, talk to **The Rebirth Elder** (Main
+- **Prestige (rebirth):** at level 65, talk to **The Rebirth Elder** (Main
   St.'s Town Square) to reset back to level 1 - keeping your gold and
   inventory, but resetting allocated stat points - in exchange for a small
   **permanent** stat bonus (+3 Attack / +15 Max HP) that stacks with every
