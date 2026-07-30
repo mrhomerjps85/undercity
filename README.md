@@ -83,7 +83,7 @@ Everyone shares the same world, monsters, and leaderboard.
   reappearing. Verified live: a level 22 dungeon monster respawns in
   exactly 65s, a level 1 regular-zone monster in exactly 14s. Rooms can
   and do hold multiple copies of the same monster.
-- **Quests:** 41 quests spanning levels 1-60, no gaps — kill quests and
+- **Quests:** 47 quests spanning levels 1-65, no gaps — kill quests and
   collect quests (gather N of an item a monster drops), some chained via
   prerequisites. Quests auto-complete and grant rewards the moment progress
   is met; collect quests consume the gathered items on completion. **All
@@ -187,6 +187,26 @@ Everyone shares the same world, monsters, and leaderboard.
   this time), and confirmed the final boss kill correctly granted *both*
   the quest reward and, independently, rolled the boss drop in the same
   fight.
+- **The Rift Ascendant (dungeon, Lv.60-65) - the finale of the arc:** the
+  wound stopped leaking, the current stopped pulling - now something is
+  walking through the rift on purpose. The boss, **The Sovereign's
+  Herald**, is deliberately framed as a vanguard of the Rift Sovereign
+  raid boss - a narrative bridge into that endgame content rather than a
+  redundant re-fight of it. 6 more monsters continuing The Undertow's
+  growth rate, both process lessons (high spawn density, boss registered
+  in the named-boss list) applied from the very first line of code this
+  time rather than as a fix. A 6-quest chain (`What Comes Through → Those
+  Who Kneel → The Faithful → Empty Vessels → The Herald Speaks → The
+  Sovereign's Herald`) and the arc's final two Legendary exclusives -
+  **Herald's Grasp** (quest reward) and **Herald's Reckoning** (30% boss
+  drop). Verified identically to the other two zones: played the full
+  chain through real combat with correct step-by-step positioning this
+  time (an earlier round of testing had a script bug where a loop
+  overwrote the character's room between iterations - fixed by
+  positioning immediately before each individual kill instead of in a
+  batch), confirmed the boss multiplier was exact on the first check
+  (`7,955 = round(3,182 × 2.5)`), and confirmed both the quest reward and
+  the independent boss drop landed correctly in the final inventory.
 - **Mythic rarity + Zhul's Blessing:** a new tier above Legendary, used
   exclusively by this quest chain's rewards (Zhul's Grasp, Aegis,
   Annihilator, and Crown - the last a repeatable bonus drop from the final

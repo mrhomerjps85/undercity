@@ -649,7 +649,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_skills_pair ON characte
 // ---------------------------------------------------------------------
 function rebalanceMonsterRewards() {
   const { expToNextLevel } = require('../gameLogic');
-  const BOSS_NAMES = new Set(['Ganglord Sid', 'The Overseer', 'The Warden', 'Dockmaster Kane', 'Zhul, the Devourer', 'The Wound-Walker', 'The Depth-Caller']);
+  const BOSS_NAMES = new Set(['Ganglord Sid', 'The Overseer', 'The Warden', 'Dockmaster Kane', 'Zhul, the Devourer', 'The Wound-Walker', 'The Depth-Caller', "The Sovereign's Herald"]);
   const K_REGULAR = 25; // target kills-to-level-up on a same-level regular monster
   const BOSS_MULTIPLIER = 2.5;
   const GOLD_RATIO = 0.47; // matches the ratio already established by the original hand-tuned values

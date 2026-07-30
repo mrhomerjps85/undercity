@@ -224,3 +224,12 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | depth_callers_grasp.svg | shark-fin | delapouite |
 | depth_callers_trident.svg | trident | lorc |
 | the_undertow.svg | vortex | lorc |
+| rift_born.svg | portal | lorc |
+| the_kneeling.svg | kneeling | delapouite |
+| rift_zealot.svg | cultist | skoll |
+| vessel_of_the_deep.svg | holy-grail | lorc |
+| the_unbound_herald.svg | trumpet-flag | delapouite |
+| sovereigns_herald.svg | winged-emblem | lorc |
+| heralds_grasp.svg | gloves | delapouite |
+| heralds_reckoning.svg | war-axe | delapouite |
+| the_rift_ascendant.svg | ascending-block | delapouite |

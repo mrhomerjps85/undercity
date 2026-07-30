@@ -79,6 +79,7 @@ function seed() {
   const zoneZhulBreach = insertZone.get('The Zhul Breach', "A tear in reality itself has opened beneath the city. Something ancient is pushing through from the other side.", 35, 'zhul_breach', 1).id;
   const zoneTheScar = insertZone.get('The Scar', "Zhul is dead, but the wound it tore never closed. Something is still crawling out of it - and it's getting stronger.", 50, 'the_scar', 1).id;
   const zoneUndertow = insertZone.get('The Undertow', "The Scar isn't just leaking anymore. Something on the other side is pulling - and whatever gets close enough goes under.", 55, 'the_undertow', 1).id;
+  const zoneRiftAscendant = insertZone.get('The Rift Ascendant', "It isn't a wound anymore. It isn't pulling anymore. It's opening - and something is walking through on purpose.", 60, 'the_rift_ascendant', 1).id;
 
   // ---------------------------------------------------------------------
   // ROOMS - each zone is now a 9x9 grid (81 rooms). Names are generated from
@@ -194,6 +195,14 @@ function seed() {
   undertowNames[7][4] = "The Depth-Caller's Grotto";
   const undertowGrid = buildGrid(zoneUndertow, undertowNames, 'undertow', undertowEntranceCoord);
 
+  const riftAscendantEntranceCoord = [4, 1];
+  const riftAscendantNames = generateRoomNameGrid(GRID_SIZE, riftAscendantEntranceCoord, 'The Widening',
+    ['Opening', 'Ascending', 'Unbound', 'Consecrated', 'Radiant', 'Yawning', 'Enthroned', 'Beckoning', 'Awakened', 'Unveiled', 'Kneeling', 'Exalted', 'Widening', 'Manifest', 'Rising', 'Anointed', 'Hollowed', 'Crowned', 'Ascendant', 'Unmade'],
+    ['Threshold', 'Rift', 'Passage', 'Sanctum', 'Throne', 'Gate', 'Nexus', 'Chasm', 'Vestibule', 'Approach', 'Hollow', 'Expanse', 'Reach', 'Wound', 'Court', 'Depths', 'Veil', 'Herald', 'Maw', 'Dominion']
+  );
+  riftAscendantNames[7][4] = "The Herald's Dominion";
+  const riftAscendantGrid = buildGrid(zoneRiftAscendant, riftAscendantNames, 'riftascendant', riftAscendantEntranceCoord);
+
   // ---------------------------------------------------------------------
   // MONSTER TEMPLATES
   // ---------------------------------------------------------------------
@@ -305,6 +314,15 @@ function seed() {
   m.abyssalHusk = insertMonster.get('Abyssal Husk', 58, 1373, 90, 35, 0, 0, 'abyssal_husk').id;
   m.theWaterlogged = insertMonster.get('The Waterlogged', 59, 1406, 92, 36, 0, 0, 'the_waterlogged').id;
   m.depthCaller = insertMonster.get('The Depth-Caller', 60, 4921, 129, 49, 0, 0, 'depth_caller').id;
+
+  // The Rift Ascendant (dungeon, levels 60-65) - continuing The Undertow's stat growth
+  // rate. The final zone of the 50-65 arc.
+  m.riftBorn = insertMonster.get('Rift-Born', 60, 1439, 94, 37, 0, 0, 'rift_born').id;
+  m.theKneeling = insertMonster.get('The Kneeling', 61, 1472, 96, 38, 0, 0, 'the_kneeling').id;
+  m.riftZealot = insertMonster.get('Rift Zealot', 62, 1504, 97, 38, 0, 0, 'rift_zealot').id;
+  m.vesselOfTheDeep = insertMonster.get('Vessel of the Deep', 63, 1537, 99, 39, 0, 0, 'vessel_of_the_deep').id;
+  m.theUnboundHerald = insertMonster.get('The Unbound Herald', 64, 1570, 101, 40, 0, 0, 'the_unbound_herald').id;
+  m.sovereignsHerald = insertMonster.get("The Sovereign's Herald", 65, 5495, 141, 54, 0, 0, 'sovereigns_herald').id;
 
   // ---------------------------------------------------------------------
   // SPAWN MONSTERS INTO ROOMS - spread across the larger 9x9 grids.
@@ -471,6 +489,22 @@ function seed() {
   spawn(undertowGrid['6,7'], m.theWaterlogged, 8);
   spawn(undertowGrid['4,7'] /* The Depth-Caller's Grotto */, m.depthCaller, 1);
 
+  // The Rift Ascendant (dungeon, entrance at 4,1; boss at 4,7 - The Herald's Dominion).
+  // Same high spawn density established for The Undertow - dungeon monsters are shared
+  // across every player in the zone, and every regular monster here is tied to a quest
+  // requiring 8-15 kills.
+  spawn(riftAscendantGrid['3,2'], m.riftBorn, 12);
+  spawn(riftAscendantGrid['5,2'], m.riftBorn, 12);
+  spawn(riftAscendantGrid['2,3'], m.theKneeling, 12);
+  spawn(riftAscendantGrid['6,3'], m.theKneeling, 12);
+  spawn(riftAscendantGrid['2,5'], m.riftZealot, 8);
+  spawn(riftAscendantGrid['6,5'], m.riftZealot, 8);
+  spawn(riftAscendantGrid['4,4'], m.vesselOfTheDeep, 8);
+  spawn(riftAscendantGrid['4,6'], m.vesselOfTheDeep, 8);
+  spawn(riftAscendantGrid['2,7'], m.theUnboundHerald, 8);
+  spawn(riftAscendantGrid['6,7'], m.theUnboundHerald, 8);
+  spawn(riftAscendantGrid['4,7'] /* The Herald's Dominion */, m.sovereignsHerald, 1);
+
   // ---------------------------------------------------------------------
   // ITEM TEMPLATES
   // ---------------------------------------------------------------------
@@ -594,6 +628,11 @@ function seed() {
   it.depthCallersGrasp = insertItem.get("Depth-Caller's Grasp", 'hands', 60, 31, 94, 0, 'quest', 0, 'depth_callers_grasp').id;
   it.depthCallersTrident = insertItem.get("Depth-Caller's Trident", 'weapon', 60, 72, 24, 0, 'dungeon', 0, 'depth_callers_trident').id;
 
+  // The Rift Ascendant's exclusive rewards - the final tier of this arc, continuing the
+  // same power progression established across The Scar and The Undertow.
+  it.heraldsGrasp = insertItem.get("Herald's Grasp", 'hands', 65, 35, 104, 0, 'quest', 0, 'heralds_grasp').id;
+  it.heraldsReckoning = insertItem.get("Herald's Reckoning", 'weapon', 65, 80, 27, 0, 'dungeon', 0, 'heralds_reckoning').id;
+
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
   it.overseerRailgun = insertItem.get("Overseer's Railgun", 'weapon', 28, 38, 25, 0, 'dungeon', 0, 'overseer_railgun').id;
@@ -615,6 +654,7 @@ function seed() {
   insertDrop.run(m.zhulDevourer, it.zhulsCrown, 0.3);
   insertDrop.run(m.woundWalker, it.woundWalkersMaw, 0.3);
   insertDrop.run(m.depthCaller, it.depthCallersTrident, 0.3);
+  insertDrop.run(m.sovereignsHerald, it.heraldsReckoning, 0.3);
 
   // ---------------------------------------------------------------------
   // ITEM SETS - bonuses for equipping multiple pieces of a themed set at once.
@@ -671,7 +711,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersGrasp, it.depthCallersTrident],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersGrasp, it.depthCallersTrident, it.heraldsGrasp, it.heraldsReckoning],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -1011,6 +1051,40 @@ function seed() {
     'kill', m.depthCaller, null, 1, 60, qundertow5, 0, 0, it.depthCallersGrasp, zoneUndertow
   );
 
+  // The Rift Ascendant - the wound stopped leaking, the current stopped pulling. Now
+  // something is walking through on purpose. The final 6-quest chain of this arc,
+  // culminating in Herald's Grasp (the boss's own drop, Herald's Reckoning, is a separate
+  // %-chance drop rather than a quest reward).
+  const qascendant1 = insertQuest.get(
+    'What Comes Through', "Things are stepping out of the rift now, not crawling. They know exactly where they're going.",
+    'kill', m.riftBorn, null, 15, 60, null, 0, 0, null, zoneRiftAscendant
+  ).id;
+
+  const qascendant2 = insertQuest.get(
+    'Those Who Kneel', "They kneel before the widening rift like it already won. Convince them otherwise.",
+    'kill', m.theKneeling, null, 12, 61, qascendant1, 0, 0, null, zoneRiftAscendant
+  ).id;
+
+  const qascendant3 = insertQuest.get(
+    'The Faithful', "Zealotry doesn't stop a blade. Test the theory.",
+    'kill', m.riftZealot, null, 10, 62, qascendant2, 0, 0, null, zoneRiftAscendant
+  ).id;
+
+  const qascendant4 = insertQuest.get(
+    'Empty Vessels', "Whatever they were carrying inside themselves for the rift, it's already arrived.",
+    'kill', m.vesselOfTheDeep, null, 8, 63, qascendant3, 0, 0, null, zoneRiftAscendant
+  ).id;
+
+  const qascendant5 = insertQuest.get(
+    'The Herald Speaks', "It doesn't fight like the others. It fights like it's making room for something bigger.",
+    'kill', m.theUnboundHerald, null, 8, 64, qascendant4, 0, 0, null, zoneRiftAscendant
+  ).id;
+
+  insertQuest.get(
+    "The Sovereign's Herald", "This is what walks ahead of what's coming. End it, and buy the city more time than it knows it's been given.",
+    'kill', m.sovereignsHerald, null, 1, 65, qascendant5, 0, 0, it.heraldsGrasp, zoneRiftAscendant
+  );
+
   // ---------------------------------------------------------------------
   // WORLD BOSS - shared server-wide fight, placed at the Main St. entrance (Town Square)
   // so every character passes through it naturally. Anyone can chip in regardless of level;
@@ -1085,7 +1159,7 @@ function seed() {
   insertPet.get("Reaper's Familiar", 'mythic', 'crit', 2.5, 'pet_reapers_familiar', 'Knows exactly where to strike. Always has.');
 
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
-  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon), The Undertow (Lv.55, dungeon)`);
+  console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon), The Undertow (Lv.55, dungeon), The Rift Ascendant (Lv.60, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);
 
   db.rebalanceMonsterRewards();
