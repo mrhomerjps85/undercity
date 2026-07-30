@@ -1181,6 +1181,15 @@ function seed() {
   insertPet.get('Starlight Fox', 'mythic', 'exp', 12, 'pet_starlight_fox', 'Trails constellations that seem to teach you something.');
   insertPet.get("Reaper's Familiar", 'mythic', 'crit', 2.5, 'pet_reapers_familiar', 'Knows exactly where to strike. Always has.');
 
+  const insertTitle = db.prepare(`
+    INSERT INTO title_templates (name, description, price, effect_type, effect_value)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(name) DO UPDATE SET
+      description=excluded.description, price=excluded.price,
+      effect_type=excluded.effect_type, effect_value=excluded.effect_value
+  `);
+  insertTitle.run('Ironhand', 'Your hands never slip. Gear upgrades can still fail, but they will never destroy the item.', 1000000, 'no_upgrade_destroy', null);
+
   console.log(wasAlreadySeeded ? 'World content check complete.' : 'World seeded successfully.');
   console.log(`Zones: Main St. (Lv.1), Angelio St. (Lv.5), City Hospital (Lv.8), The Underworks (Lv.12, dungeon), The Blacksite (Lv.18, dungeon), The Docklands (Lv.24, dungeon), The Zhul Breach (Lv.35, dungeon), The Scar (Lv.50, dungeon), The Undertow (Lv.55, dungeon), The Rift Ascendant (Lv.60, dungeon)`);
   console.log(`Each zone is a ${GRID_SIZE}x${GRID_SIZE} grid (${GRID_SIZE * GRID_SIZE} rooms).`);

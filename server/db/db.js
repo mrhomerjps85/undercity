@@ -411,6 +411,32 @@ CREATE TABLE IF NOT EXISTS character_pets (
   FOREIGN KEY (pet_template_id) REFERENCES pet_templates(id)
 );
 
+-- Titles - the permanent, purchased counterpart to Pets. Bought once with gold (not
+-- RNG-dropped), owned forever, only one active at a time. effect_type is deliberately
+-- generic (not just a stat bonus like pets/skills) since titles can grant special
+-- mechanics - e.g. Ironhand's 'no_upgrade_destroy' removes gear-upgrade destruction risk
+-- entirely rather than adding a number to a stat.
+CREATE TABLE IF NOT EXISTS title_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  description TEXT,
+  price INTEGER NOT NULL,
+  effect_type TEXT NOT NULL,
+  effect_value REAL
+);
+
+-- One row per character per title ever purchased - a UNIQUE constraint (not just a
+-- convention) since, unlike Pets, there's no RNG here and no reason "owning" the same
+-- title twice should ever be possible.
+CREATE TABLE IF NOT EXISTS character_titles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  title_template_id INTEGER NOT NULL,
+  purchased_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (character_id) REFERENCES characters(id),
+  FOREIGN KEY (title_template_id) REFERENCES title_templates(id)
+);
+
 -- Depositing an item removes it from character_inventory and creates a row here (same
 -- delete-and-recreate pattern already used for Marketplace listings) - the Leader/Officers
 -- can then assign a vault item to a specific member, which deletes the vault row and
@@ -579,6 +605,7 @@ ensureColumn('raids', 'current_round', 'INTEGER DEFAULT 1');
 ensureColumn('raid_participants', 'is_ready', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'active_pet_template_id', 'INTEGER');
 ensureColumn('raids', 'boss_key', "TEXT DEFAULT 'rift_sovereign'");
+ensureColumn('characters', 'active_title_id', 'INTEGER');
 
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually
@@ -634,6 +661,7 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_materials_pair ON chara
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_crafting_recipes_item ON crafting_recipes(item_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_active_buffs_pair ON character_active_buffs(character_id, potion_type)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_raid_participants_pair ON raid_participants(raid_id, character_id)');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_titles_pair ON character_titles(character_id, title_template_id)');
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_skills_pair ON character_skills(character_id, skill_type)');
 
 // ---------------------------------------------------------------------

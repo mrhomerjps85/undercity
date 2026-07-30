@@ -4,6 +4,7 @@ const { requireAuth, requireCharacter } = require('../middleware');
 const { MAX_UPGRADE_LEVEL, upgradeCost, attemptUpgrade } = require('../gameLogic');
 const { serializeCharacter, getActiveSetInfo } = require('./character');
 const { POTION_DEFINITIONS, buyPotion } = require('../potions');
+const { getActiveTitleEffect } = require('../titles');
 
 const router = express.Router();
 
@@ -165,6 +166,12 @@ router.post('/upgrade', requireAuth, requireCharacter, (req, res) => {
   db.prepare('UPDATE characters SET gold = gold - ? WHERE id = ?').run(cost, req.character.id);
 
   const result = attemptUpgrade(invItem.upgrade_level);
+  const titleEffect = getActiveTitleEffect(req.character.id);
+  if (result.outcome === 'fail_destroyed' && titleEffect.noUpgradeDestroy) {
+    // Ironhand equipped - the item survives, same as any other safe failure. The upgrade
+    // still didn't succeed and the gold is still spent, just nothing is lost.
+    result.outcome = 'fail_safe';
+  }
   if (result.outcome === 'success') {
     db.prepare('UPDATE character_inventory SET upgrade_level = ? WHERE id = ?').run(result.newLevel, inventoryId);
   } else if (result.outcome === 'fail_destroyed') {

@@ -399,6 +399,22 @@ Everyone shares the same world, monsters, and leaderboard.
   +8% bonus applied precisely to a World Boss kill's reward share
   (4,000 → 4,320). Applied consistently across every combat path and
   reflected on the Character page's detailed stat breakdown.
+- **Titles:** the permanent, purchased counterpart to Pets - bought once
+  with gold rather than RNG-dropped, owned forever, own tab. Only one
+  active at a time, same "collection, not a stacking bonus slot" feel as
+  Pets. Built with a generic effect-type system rather than a simple stat
+  multiplier, since a title's effect can be a genuine game-rule change
+  rather than a number - the first title, **Ironhand** (1,000,000 gold),
+  removes gear-upgrade destruction risk entirely: upgrades can still
+  fail, but the item is never lost, only the gold spent attempting it.
+  Verified with a real A/B test rather than trusting the math on paper:
+  created 20 items at +4 (targeting +5, normally a 35% chance of losing
+  the item on failure) and attempted upgrading all of them twice -
+  without Ironhand active, 8 of 20 were destroyed; with it active
+  immediately after, resetting the same 20 items back to +4, 0 of 20
+  were destroyed, with a mix of real successes and safe failures in
+  between. Confirms the effect works precisely as intended, not just
+  that it doesn't crash.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item

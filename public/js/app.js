@@ -271,6 +271,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-market') loadMarketPanel();
       if (btn.dataset.panel === 'panel-skills') loadSkillsPanel();
       if (btn.dataset.panel === 'panel-pets') loadPetsPanel();
+      if (btn.dataset.panel === 'panel-titles') loadTitlesPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -2704,6 +2705,64 @@ function renderPetsList(pets, activePetTemplateId) {
           await api('/pets/activate', { method: 'POST', body: JSON.stringify({ petTemplateId: p.id }) });
           showToast(`${p.name} is now active!`);
           loadPetsPanel();
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+    }
+    list.appendChild(card);
+  });
+}
+
+// ---------- Titles ----------
+async function loadTitlesPanel() {
+  try {
+    const data = await api('/titles');
+    renderTitlesList(data.titles, data.activeTitleId);
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderTitlesList(titles, activeTitleId) {
+  const list = document.getElementById('titles-list');
+  if (titles.length === 0) {
+    list.innerHTML = '<p class="empty-msg">No titles available yet.</p>';
+    return;
+  }
+  list.innerHTML = '';
+  titles.forEach((t) => {
+    const isActive = t.id === activeTitleId;
+    const card = document.createElement('div');
+    card.className = `pet-card ${isActive ? 'active' : ''}`;
+
+    let actionHtml;
+    if (isActive) {
+      actionHtml = '<div class="pet-active-tag">ACTIVE</div>';
+    } else if (t.owned) {
+      actionHtml = '<button class="btn-primary pet-activate-btn">Activate</button>';
+    } else {
+      actionHtml = `<button class="btn-primary pet-activate-btn">Buy (${t.price.toLocaleString()}g)</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="pet-name rarity-legendary">${t.name}</div>
+      <div class="pet-count">${t.owned ? 'Owned' : `${t.price.toLocaleString()} Gold`}</div>
+      <div class="pet-desc">${t.description || ''}</div>
+      ${actionHtml}
+    `;
+
+    if (!isActive) {
+      card.querySelector('.pet-activate-btn').addEventListener('click', async () => {
+        try {
+          if (t.owned) {
+            await api('/titles/activate', { method: 'POST', body: JSON.stringify({ titleId: t.id }) });
+            showToast(`${t.name} is now active!`);
+          } else {
+            await api('/titles/purchase', { method: 'POST', body: JSON.stringify({ titleId: t.id }) });
+            showToast(`Purchased ${t.name}!`);
+          }
+          loadTitlesPanel();
         } catch (err) {
           showToast(err.message, true);
         }
