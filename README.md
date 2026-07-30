@@ -180,8 +180,8 @@ Everyone shares the same world, monsters, and leaderboard.
   carried forward directly from building The Scar. A 6-quest chain
   (`Pulled Under → Against the Current → What Sank → Waterlogged → The
   Last Breath → The Depth-Caller`) and two more Legendary exclusives -
-  **Depth-Caller's Grasp** (quest reward) and **Depth-Caller's Trident**
-  (30% boss drop). Verified the same way as The Scar: played the entire
+  **Depth-Caller's Shell** (chest, quest reward) and **Depth-Caller's
+  Coil** (neck, 30% boss drop). Verified the same way as The Scar: played the entire
   chain through real combat, confirmed the boss's reward multiplier was
   correct on the very first check (`7,000 = round(2,800 × 2.5)`, no bug
   this time), and confirmed the final boss kill correctly granted *both*
@@ -198,7 +198,8 @@ Everyone shares the same world, monsters, and leaderboard.
   time rather than as a fix. A 6-quest chain (`What Comes Through → Those
   Who Kneel → The Faithful → Empty Vessels → The Herald Speaks → The
   Sovereign's Herald`) and the arc's final two Legendary exclusives -
-  **Herald's Grasp** (quest reward) and **Herald's Reckoning** (30% boss
+  **Herald's Greaves** (legs, quest reward) and **Herald's Aegis**
+  (shield, 30% boss
   drop). Verified identically to the other two zones: played the full
   chain through real combat with correct step-by-step positioning this
   time (an earlier round of testing had a script bug where a loop
@@ -207,6 +208,21 @@ Everyone shares the same world, monsters, and leaderboard.
   batch), confirmed the boss multiplier was exact on the first check
   (`7,955 = round(3,182 × 2.5)`), and confirmed both the quest reward and
   the independent boss drop landed correctly in the final inventory.
+  **Slot diversity fix:** all six of this arc's exclusive rewards
+  originally landed on just two slots (hands for every quest reward,
+  weapon for every boss drop) - completing all three zones meant three
+  competing items per slot instead of six usable pieces. Reslotted to
+  chest/neck/legs/shield for The Undertow and The Rift Ascendant's
+  rewards (The Scar's hands/weapon pair stayed as the baseline), with
+  stats rebalanced to match each slot's existing conventions (shields in
+  this game carry zero attack, for example - Herald's Aegis follows
+  that same pattern rather than being generically stat-balanced). This
+  also surfaced a real bug in the item-seeding logic itself: the
+  upsert only ever updated an item's `name` on conflict, so a stat or
+  slot change to an *already-seeded* item would have silently failed to
+  take effect on a redeploy. Fixed to update every column, and verified
+  by deliberately corrupting a seeded item's stats, redeploying, and
+  confirming it self-corrected back to the real values.
 - **Mythic rarity + Zhul's Blessing:** a new tier above Legendary, used
   exclusively by this quest chain's rewards (Zhul's Grasp, Aegis,
   Annihilator, and Crown - the last a repeatable bonus drop from the final

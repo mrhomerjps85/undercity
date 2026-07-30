@@ -511,7 +511,11 @@ function seed() {
   const insertItem = db.prepare(`
     INSERT INTO item_templates (name, slot, required_level, bonus_atk, bonus_hp, price, source, is_quest_item, image)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(name) DO UPDATE SET name=excluded.name RETURNING id
+    ON CONFLICT(name) DO UPDATE SET
+      slot=excluded.slot, required_level=excluded.required_level, bonus_atk=excluded.bonus_atk,
+      bonus_hp=excluded.bonus_hp, price=excluded.price, source=excluded.source,
+      is_quest_item=excluded.is_quest_item, image=excluded.image
+    RETURNING id
   `);
   const it = {};
 
@@ -625,13 +629,13 @@ function seed() {
   it.woundWalkersMaw = insertItem.get("Wound-Walker's Maw", 'weapon', 55, 65, 22, 0, 'dungeon', 0, 'wound_walkers_maw').id;
 
   // The Undertow's exclusive rewards - continuing the same power progression as The Scar.
-  it.depthCallersGrasp = insertItem.get("Depth-Caller's Grasp", 'hands', 60, 31, 94, 0, 'quest', 0, 'depth_callers_grasp').id;
-  it.depthCallersTrident = insertItem.get("Depth-Caller's Trident", 'weapon', 60, 72, 24, 0, 'dungeon', 0, 'depth_callers_trident').id;
+  it.depthCallersShell = insertItem.get("Depth-Caller's Shell", 'chest', 60, 22, 195, 0, 'quest', 0, 'depth_callers_shell').id;
+  it.depthCallersCoil = insertItem.get("Depth-Caller's Coil", 'neck', 60, 48, 155, 0, 'dungeon', 0, 'depth_callers_coil').id;
 
   // The Rift Ascendant's exclusive rewards - the final tier of this arc, continuing the
   // same power progression established across The Scar and The Undertow.
-  it.heraldsGrasp = insertItem.get("Herald's Grasp", 'hands', 65, 35, 104, 0, 'quest', 0, 'heralds_grasp').id;
-  it.heraldsReckoning = insertItem.get("Herald's Reckoning", 'weapon', 65, 80, 27, 0, 'dungeon', 0, 'heralds_reckoning').id;
+  it.heraldsGreaves = insertItem.get("Herald's Greaves", 'legs', 65, 26, 175, 0, 'quest', 0, 'heralds_greaves').id;
+  it.heraldsAegis = insertItem.get("Herald's Aegis", 'shield', 65, 0, 250, 0, 'dungeon', 0, 'heralds_aegis').id;
 
   // The Blacksite quest-line gear.
   it.blacksiteVisor = insertItem.get('Blacksite Visor', 'head', 20, 12, 40, 0, 'quest', 0, 'blacksite_visor').id;
@@ -653,8 +657,8 @@ function seed() {
   insertDrop.run(m.dockmasterKane, it.kanesGoldenAnchor, 0.3);
   insertDrop.run(m.zhulDevourer, it.zhulsCrown, 0.3);
   insertDrop.run(m.woundWalker, it.woundWalkersMaw, 0.3);
-  insertDrop.run(m.depthCaller, it.depthCallersTrident, 0.3);
-  insertDrop.run(m.sovereignsHerald, it.heraldsReckoning, 0.3);
+  insertDrop.run(m.depthCaller, it.depthCallersCoil, 0.3);
+  insertDrop.run(m.sovereignsHerald, it.heraldsAegis, 0.3);
 
   // ---------------------------------------------------------------------
   // ITEM SETS - bonuses for equipping multiple pieces of a themed set at once.
@@ -711,7 +715,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersGrasp, it.depthCallersTrident, it.heraldsGrasp, it.heraldsReckoning],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersShell, it.depthCallersCoil, it.heraldsGreaves, it.heraldsAegis],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -1067,7 +1071,7 @@ function seed() {
 
   insertQuest.get(
     'The Depth-Caller', "At the bottom of the Undertow, something has been doing the pulling all along. Time to meet it.",
-    'kill', m.depthCaller, null, 1, 60, qundertow5, 0, 0, it.depthCallersGrasp, zoneUndertow
+    'kill', m.depthCaller, null, 1, 60, qundertow5, 0, 0, it.depthCallersShell, zoneUndertow
   );
 
   // The Rift Ascendant - the wound stopped leaking, the current stopped pulling. Now
@@ -1101,7 +1105,7 @@ function seed() {
 
   insertQuest.get(
     "The Sovereign's Herald", "This is what walks ahead of what's coming. End it, and buy the city more time than it knows it's been given.",
-    'kill', m.sovereignsHerald, null, 1, 65, qascendant5, 0, 0, it.heraldsGrasp, zoneRiftAscendant
+    'kill', m.sovereignsHerald, null, 1, 65, qascendant5, 0, 0, it.heraldsGreaves, zoneRiftAscendant
   );
 
   // ---------------------------------------------------------------------

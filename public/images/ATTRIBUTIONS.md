@@ -233,3 +233,7 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | heralds_grasp.svg | gloves | delapouite |
 | heralds_reckoning.svg | war-axe | delapouite |
 | the_rift_ascendant.svg | ascending-block | delapouite |
+| depth_callers_shell.svg | turtle-shell | lorc |
+| depth_callers_coil.svg | spiral-tentacle | lorc |
+| heralds_greaves.svg | trousers | lucasms |
+| heralds_aegis.svg | winged-shield | lorc |
