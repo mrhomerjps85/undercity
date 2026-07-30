@@ -290,23 +290,35 @@ Everyone shares the same world, monsters, and leaderboard.
   kills per floor for all 100 floors (`exp_reward = floorExpNeeded / 25`),
   same self-consistent formula approach used to fix the main reward curve
   - no boss cliffs, just a steady, predictable long-haul grind.
-- **Crafting (The Blacksmith):** three full 8-piece gear sets - Forged
-  (Lv.15), Runic (Lv.30), Voidforged (Lv.45) - one piece per equipment
-  slot per tier, 24 items total. Monsters in the appropriate zones (tier
-  15 → Angelio St./City Hospital, tier 30 → Underworks/Blacksite/
-  Docklands, tier 45 → The Zhul Breach) drop **slot-specific crafting
-  materials**, not the finished gear directly - Talk to **The Blacksmith**
-  (Main St.'s Town Square, alongside the Rebirth Elder) to spend materials
-  + gold crafting the exact piece you're missing, rather than hoping
-  for the right drop out of 8 possibilities. Materials stack (a separate
-  `character_materials` table, since regular equipment is one row per
-  instance and was never built to stack). Item stats and material/gold
-  costs are 100% formula-driven from tier level, not hand-picked per item -
-  same consistency approach as the reward-rebalancing fix. Deliberately
-  capped below the unique dungeon/boss-exclusive rewards (like Zhul's
-  Blessing) even at a full 8-piece set, so crafting is a strong, reliable
-  path to gear rather than a replacement for the one-off legendary chase
-  items.
+- **Crafting (The Blacksmith):** six full 8-piece gear sets - Forged
+  (Lv.15), Runic (Lv.30), Voidforged (Lv.45), and now **Scarforged
+  (Lv.50), Tideforged (Lv.55), and Riftbound (Lv.60)** matching the three
+  new 50-65 zones - one piece per equipment slot per tier, 48 items
+  total. Monsters in the appropriate zones (tier 15 → Angelio St./City
+  Hospital, tier 30 → Underworks/Blacksite/Docklands, tier 45 → The Zhul
+  Breach, tier 50 → The Scar, tier 55 → The Undertow, tier 60 → The Rift
+  Ascendant) drop **slot-specific crafting materials**, not the finished
+  gear directly - Talk to **The Blacksmith** (Main St.'s Town Square,
+  alongside the Rebirth Elder) to spend materials + gold crafting the
+  exact piece you're missing, rather than hoping for the right drop out
+  of 8 possibilities. Materials stack (a separate `character_materials`
+  table, since regular equipment is one row per instance and was never
+  built to stack). Item stats and material/gold costs are 100%
+  formula-driven from tier level, not hand-picked per item - the three
+  new tiers required no new formula, no new icons (they reuse the same 8
+  generic per-slot icons every tier already shared), and no new item
+  design at all beyond adding three entries to the tier list; the
+  existing formula-driven system generated all 24 new materials, 24 new
+  items, and 3 new sets with correctly-scaled bonuses automatically.
+  Verified live: crafted a real Scarforged Weapon end-to-end (fought
+  actual Scar Wretches, confirmed all 8 material types dropped correctly,
+  then spent 15 materials + 12,000 gold at the Blacksmith and confirmed
+  both the gold deduction and the resulting item landed exactly right),
+  and confirmed all three new sets' 8-piece bonuses (+40/+40/+45 ATK)
+  exceed Voidforged's (+35 ATK) as intended. Deliberately capped below
+  the unique dungeon/boss-exclusive rewards (like Zhul's Blessing) even
+  at a full 8-piece set, so crafting is a strong, reliable path to gear
+  rather than a replacement for the one-off legendary chase items.
 - **Marketplace:** a player-to-player auction house (its own tab), not
   direct trading - list equipment or crafting materials for a gold price,
   anyone can buy anytime without needing to coordinate being online

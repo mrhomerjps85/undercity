@@ -749,6 +749,13 @@ function seed() {
     { tier: 15, prefix: 'Forged', rarity: 'rare', materialsNeeded: 5, goldCost: 500 },
     { tier: 30, prefix: 'Runic', rarity: 'epic', materialsNeeded: 8, goldCost: 2500 },
     { tier: 45, prefix: 'Voidforged', rarity: 'legendary', materialsNeeded: 12, goldCost: 8000 },
+    // Matching the three new 50-65 zones - kept at Legendary, not Mythic (Zhul's Blessing
+    // stays the singular "ultimate" tier), but the formula-driven set bonus (u = tier*0.15)
+    // naturally exceeds Voidforged just by using a higher tier number, and materials/gold
+    // costs escalate further beyond it too.
+    { tier: 50, prefix: 'Scarforged', rarity: 'legendary', materialsNeeded: 15, goldCost: 12000 },
+    { tier: 55, prefix: 'Tideforged', rarity: 'legendary', materialsNeeded: 18, goldCost: 16000 },
+    { tier: 60, prefix: 'Riftbound', rarity: 'legendary', materialsNeeded: 22, goldCost: 22000 },
   ];
 
   const craftMaterials = {};
@@ -829,6 +836,18 @@ function seed() {
 
   assignMaterialDrops(45, [
     m.riftStalker, m.zhulCultist, m.corruptedHusk, m.voidboundHorror, m.zhulHerald,
+  ], 0.2);
+
+  assignMaterialDrops(50, [
+    m.scarWretch, m.bleedingHusk, m.riftTouchedStalker, m.hollowedRemnant, m.theUnmade,
+  ], 0.2);
+
+  assignMaterialDrops(55, [
+    m.drownedWretch, m.paleCurrent, m.sunkenRemnant, m.abyssalHusk, m.theWaterlogged,
+  ], 0.2);
+
+  assignMaterialDrops(60, [
+    m.riftBorn, m.theKneeling, m.riftZealot, m.vesselOfTheDeep, m.theUnboundHerald,
   ], 0.2);
 
   // ---------------------------------------------------------------------
