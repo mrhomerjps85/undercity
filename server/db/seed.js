@@ -421,16 +421,21 @@ function seed() {
   spawn(zhulBreachGrid['4,7'] /* The Devourer's Maw */, m.zhulDevourer, 1);
 
   // The Scar (dungeon, entrance at 4,1; boss at 4,7 - The Wound-Walker's Throat)
-  spawn(theScarGrid['3,2'], m.scarWretch, 3);
-  spawn(theScarGrid['5,2'], m.scarWretch, 3);
-  spawn(theScarGrid['2,3'], m.bleedingHusk, 3);
-  spawn(theScarGrid['6,3'], m.bleedingHusk, 3);
-  spawn(theScarGrid['2,5'], m.riftTouchedStalker, 2);
-  spawn(theScarGrid['6,5'], m.riftTouchedStalker, 2);
-  spawn(theScarGrid['4,4'], m.hollowedRemnant, 2);
-  spawn(theScarGrid['4,6'], m.hollowedRemnant, 2);
-  spawn(theScarGrid['2,7'], m.theUnmade, 2);
-  spawn(theScarGrid['6,7'], m.theUnmade, 2);
+  // Spawn counts are deliberately high (4x an earlier, too-thin pass) - since dungeon
+  // monsters are shared across every player in the zone, low counts create real
+  // contention once more than a handful of people are questing here at once. Every
+  // regular monster here is tied to a quest requiring 8-15 kills, so this matters more
+  // than it would in a zone people are just passing through.
+  spawn(theScarGrid['3,2'], m.scarWretch, 12);
+  spawn(theScarGrid['5,2'], m.scarWretch, 12);
+  spawn(theScarGrid['2,3'], m.bleedingHusk, 12);
+  spawn(theScarGrid['6,3'], m.bleedingHusk, 12);
+  spawn(theScarGrid['2,5'], m.riftTouchedStalker, 8);
+  spawn(theScarGrid['6,5'], m.riftTouchedStalker, 8);
+  spawn(theScarGrid['4,4'], m.hollowedRemnant, 8);
+  spawn(theScarGrid['4,6'], m.hollowedRemnant, 8);
+  spawn(theScarGrid['2,7'], m.theUnmade, 8);
+  spawn(theScarGrid['6,7'], m.theUnmade, 8);
   spawn(theScarGrid['4,7'] /* The Wound-Walker's Throat */, m.woundWalker, 1);
 
   // ---------------------------------------------------------------------
