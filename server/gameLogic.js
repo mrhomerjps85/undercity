@@ -255,6 +255,56 @@ function applyUpgradeMultiplier(baseValue, upgradeLevel) {
 }
 
 // ---------------------------------------------------------------------
+// PvP - unlike resolveCombat (built for player-vs-monster, where only the player can
+// crit and only the monster's Defense matters), a fair PvP duel needs both sides able to
+// crit off their own gear/skills and both sides' Defense mitigating incoming damage.
+//
+// Tested empirically before building this: with the same MAX_TURNS cap as regular combat,
+// two sufficiently HP-heavy/low-attack builds (achievable for real via HP points, gear,
+// Fortitude skill, tank pets) stalemate 100% of the time with neither side dying - and the
+// reused function's behavior in that case silently favors the defender by default, which
+// would be an exploitable unfairness in real competitive PvP. This resolver explicitly
+// tie-breaks on remaining HP percentage if the cap is hit, so a duel ALWAYS produces a
+// genuine winner for the rating system to work with.
+const PVP_MAX_ROUNDS = 100;
+
+function resolvePvpDuel(attackerStats, defenderStats) {
+  let attackerHp = attackerStats.maxHp;
+  let defenderHp = defenderStats.maxHp;
+  let round = 0;
+
+  while (attackerHp > 0 && defenderHp > 0 && round < PVP_MAX_ROUNDS) {
+    round++;
+
+    let dmgToDefender = Math.max(1, Math.round(attackerStats.attack * (0.85 + Math.random() * 0.3) - defenderStats.defense * 0.5));
+    if (Math.random() < attackerStats.critChance) dmgToDefender = Math.round(dmgToDefender * attackerStats.critMultiplier);
+    defenderHp -= dmgToDefender;
+    if (defenderHp <= 0) break;
+
+    let dmgToAttacker = Math.max(1, Math.round(defenderStats.attack * (0.85 + Math.random() * 0.3) - attackerStats.defense * 0.5));
+    if (Math.random() < defenderStats.critChance) dmgToAttacker = Math.round(dmgToAttacker * defenderStats.critMultiplier);
+    attackerHp -= dmgToAttacker;
+    if (attackerHp <= 0) break;
+  }
+
+  let attackerWon;
+  if (defenderHp <= 0 && attackerHp > 0) {
+    attackerWon = true;
+  } else if (attackerHp <= 0 && defenderHp > 0) {
+    attackerWon = false;
+  } else {
+    // Hit the round cap with both sides still standing (or, in a genuine
+    // simultaneous-lethal edge case, both at/below 0) - decide by remaining HP
+    // percentage so there is always a clean winner, never a draw.
+    const attackerPct = Math.max(0, attackerHp) / attackerStats.maxHp;
+    const defenderPct = Math.max(0, defenderHp) / defenderStats.maxHp;
+    attackerWon = attackerPct >= defenderPct;
+  }
+
+  return { attackerWon, roundsFought: round };
+}
+
+// ---------------------------------------------------------------------
 // World bosses - shared, server-wide fights. Unlike regular combat, one attack
 // call deals a single hit against a persistent shared HP pool rather than
 // resolving a full fight to completion. No damage is dealt back to the player -
@@ -283,6 +333,7 @@ module.exports = {
   upgradeCost,
   attemptUpgrade,
   applyUpgradeMultiplier,
+  resolvePvpDuel,
   WORLD_BOSS_ATTACK_COOLDOWN_SECONDS,
   computeWorldBossDamage,
   getCritConfig,

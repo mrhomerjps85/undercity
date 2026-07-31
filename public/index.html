@@ -99,6 +99,7 @@
       <button class="nav-item" data-panel="panel-skills">Skills</button>
       <button class="nav-item" data-panel="panel-pets">Pets</button>
       <button class="nav-item" data-panel="panel-titles">Titles</button>
+      <button class="nav-item" data-panel="panel-pvp">PvP</button>
       <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
@@ -423,6 +424,17 @@
       <h2 class="panel-title">Titles</h2>
       <p class="hint">Permanent effects, bought once with gold. Only one can be active at a time, but every title you buy is yours forever.</p>
       <div class="pets-list" id="titles-list"></div>
+    </section>
+
+    <!-- PVP PANEL -->
+    <section class="panel hidden" id="panel-pvp">
+      <h2 class="panel-title">PvP</h2>
+      <div class="bonus-breakdown-box" id="pvp-status-box"></div>
+      <h3 class="subheading" style="margin-top:16px;">Rankings</h3>
+      <table class="leaderboard-table">
+        <thead><tr><th>#</th><th>Name</th><th>Level</th><th>Rating</th><th></th></tr></thead>
+        <tbody id="pvp-leaderboard-body"></tbody>
+      </table>
     </section>
 
     <section class="panel hidden" id="panel-admin">

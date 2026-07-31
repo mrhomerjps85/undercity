@@ -272,6 +272,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-skills') loadSkillsPanel();
       if (btn.dataset.panel === 'panel-pets') loadPetsPanel();
       if (btn.dataset.panel === 'panel-titles') loadTitlesPanel();
+      if (btn.dataset.panel === 'panel-pvp') loadPvpPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -2770,6 +2771,62 @@ function renderTitlesList(titles, activeTitleId) {
     }
     list.appendChild(card);
   });
+}
+
+// ---------- PvP ----------
+async function loadPvpPanel() {
+  try {
+    const [status, board] = await Promise.all([api('/pvp/status'), api('/pvp/leaderboard')]);
+    document.getElementById('pvp-status-box').innerHTML = `
+      <div class="bonus-row">
+        <span class="bonus-source">Your Rating</span>
+        <span class="bonus-values">${status.rating}</span>
+      </div>
+      <div class="bonus-row">
+        <span class="bonus-source">Attacks Remaining Today</span>
+        <span class="bonus-values">${status.attacksRemaining} / ${status.maxAttacksPerDay}</span>
+      </div>
+      <p class="hint" style="margin-top:8px;">Max ${status.maxAttacksPerTargetPerDay} attacks against the same player per day. No level restrictions - beating someone far above you is worth a lot more rating than beating someone far below.</p>
+    `;
+
+    const tbody = document.getElementById('pvp-leaderboard-body');
+    tbody.innerHTML = '';
+    board.rankings.forEach((r, i) => {
+      const isSelf = r.name === state.character.name;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td class="player-link">${r.name}</td>
+        <td>${r.level}</td>
+        <td>${r.pvp_rating}</td>
+        <td>${isSelf ? '' : `<button class="btn-ghost pvp-attack-btn" data-name="${r.name}">Attack</button>`}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.pvp-attack-btn').forEach((btn) => {
+      btn.addEventListener('click', () => attackPvpTarget(btn.dataset.name));
+    });
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function attackPvpTarget(targetName) {
+  try {
+    const board = await api('/pvp/leaderboard');
+    const target = board.rankings.find((r) => r.name === targetName);
+    if (!target) { showToast('Player not found.', true); return; }
+
+    const data = await api('/pvp/attack', { method: 'POST', body: JSON.stringify({ targetCharacterId: target.id }) });
+
+    const resultText = data.won
+      ? `Victory over ${data.defenderName} after ${data.roundsFought} rounds! Rating ${data.ratingBefore} -> ${data.ratingAfter} (+${data.ratingChange}).`
+      : `Defeated by ${data.defenderName} after ${data.roundsFought} rounds. Rating ${data.ratingBefore} -> ${data.ratingAfter} (${data.ratingChange}).`;
+    showToast(resultText, !data.won);
+    loadPvpPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
 }
 
 // ---------- Go ----------

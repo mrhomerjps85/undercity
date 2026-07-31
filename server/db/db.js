@@ -437,6 +437,26 @@ CREATE TABLE IF NOT EXISTS character_titles (
   FOREIGN KEY (title_template_id) REFERENCES title_templates(id)
 );
 
+-- PvP duel log - doubles as both a history record and the source of truth for daily
+-- attack limits (15/day total, 3/day against the same target), derived by counting rows
+-- from today rather than tracking separate counters that could drift out of sync.
+CREATE TABLE IF NOT EXISTS pvp_duels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  attacker_id INTEGER NOT NULL,
+  attacker_name TEXT NOT NULL,
+  defender_id INTEGER NOT NULL,
+  defender_name TEXT NOT NULL,
+  winner_id INTEGER NOT NULL,
+  attacker_rating_before INTEGER NOT NULL,
+  defender_rating_before INTEGER NOT NULL,
+  attacker_rating_after INTEGER NOT NULL,
+  defender_rating_after INTEGER NOT NULL,
+  rounds_fought INTEGER NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (attacker_id) REFERENCES characters(id),
+  FOREIGN KEY (defender_id) REFERENCES characters(id)
+);
+
 -- Depositing an item removes it from character_inventory and creates a row here (same
 -- delete-and-recreate pattern already used for Marketplace listings) - the Leader/Officers
 -- can then assign a vault item to a specific member, which deletes the vault row and
@@ -606,6 +626,7 @@ ensureColumn('raid_participants', 'is_ready', 'INTEGER DEFAULT 0');
 ensureColumn('characters', 'active_pet_template_id', 'INTEGER');
 ensureColumn('raids', 'boss_key', "TEXT DEFAULT 'rift_sovereign'");
 ensureColumn('characters', 'active_title_id', 'INTEGER');
+ensureColumn('characters', 'pvp_rating', 'INTEGER DEFAULT 1500');
 
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually

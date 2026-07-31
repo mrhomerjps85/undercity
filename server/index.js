@@ -68,6 +68,7 @@ app.use('/api/raids', raidsRoutes);
 app.use('/api/skills', skillsRoutes);
 app.use('/api/pets', require('./routes/pets'));
 app.use('/api/titles', require('./routes/titles'));
+app.use('/api/pvp', require('./routes/pvp'));
 
 // Global error handler - without this, any uncaught exception in a route handler falls
 // through to Express's default handler, which returns a non-JSON response. The frontend's

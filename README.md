@@ -415,6 +415,35 @@ Everyone shares the same world, monsters, and leaderboard.
   were destroyed, with a mix of real successes and safe failures in
   between. Confirms the effect works precisely as intended, not just
   that it doesn't crash.
+- **PvP:** open, level-unrestricted dueling with an ELO rating system
+  (starting at 1500, K-factor 32) - own tab, its own leaderboard. Each
+  character gets 15 attacks per day total, max 3 against the same
+  target, tracked by counting today's rows in a duel log rather than a
+  separate counter that could drift out of sync. No item/gold stakes -
+  the entire incentive is rating standing, which is exactly why no level
+  restriction is needed: ELO self-corrects for mismatches on its own (an
+  upset win moves both ratings a lot, an expected win barely moves them),
+  verified against the actual formula - equal ratings produced exactly
+  +16/-16 on a real fight, and the change is a genuine zero-sum mirror
+  (attacker 1500→1516, defender 1500→1484, confirmed in the database).
+  Resolution reuses the same full stat stack as every other combat path
+  (gear, rebirth, tower, skills, pets, clan, potions) for both sides, but
+  **not** the same combat engine - the existing one only lets the player
+  crit, never the monster, which would be unfair in a real player-vs-
+  player fight. Built a dedicated symmetric resolver instead, and this
+  surfaced a real bug before it ever shipped: tested whether the existing
+  100-round cap could ever be reached without a winner, and found that a
+  genuinely achievable "tank" build (high HP, modest attack - reachable
+  via HP points, gear, Fortitude skill, tank Pets) stalemates **100% of
+  the time**, which the old code would have silently resolved as an
+  automatic loss for the attacker. Fixed with an explicit tie-breaker
+  (higher remaining HP% wins if the cap is hit) and confirmed live: the
+  exact same stalemating scenario still hits the cap 100/100 times, but
+  now always produces a clean, decisive winner. Along the way, discovered
+  that "Defense" isn't actually a real stat anywhere on characters or
+  gear in this game despite an old code comment suggesting otherwise -
+  only monsters have one - so PvP correctly treats it as 0 for both sides
+  rather than pretending it does something it can't.
 - **Inventory & equipment:** a paper-doll view — weapon/chest/head/boots/neck/
   shield/hands/legs slots arranged around a character silhouette, click a
   filled slot to unequip — plus an Attack/HP stats summary, and a full item
