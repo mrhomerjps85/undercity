@@ -229,6 +229,7 @@ function updateTopBar() {
   document.getElementById('pill-name').textContent = c.name;
   document.getElementById('pill-level').textContent = c.level;
   document.getElementById('pill-gold').textContent = c.gold;
+  document.getElementById('pill-crowns').textContent = c.crowns_balance;
 
   document.getElementById('dropdown-attack').textContent = c.attack;
   document.getElementById('dropdown-maxhp').textContent = c.max_hp;
@@ -273,6 +274,7 @@ function setupNav() {
       if (btn.dataset.panel === 'panel-pets') loadPetsPanel();
       if (btn.dataset.panel === 'panel-titles') loadTitlesPanel();
       if (btn.dataset.panel === 'panel-pvp') loadPvpPanel();
+      if (btn.dataset.panel === 'panel-crowns') loadCrownShopPanel();
       if (btn.dataset.panel === 'panel-travel') loadTravel();
     }, { once: false });
   });
@@ -1286,9 +1288,9 @@ function ownedTagHtml(count) {
 }
 
 // Approximate cost/risk shown before an upgrade attempt (mirrors server-side formulas
-// in gameLogic.js - kept in sync manually since this is just a heads-up display).
-const UPGRADE_SUCCESS_CHANCE_DISPLAY = { 1: 90, 2: 75, 3: 60, 4: 45, 5: 30 };
-const UPGRADE_RISK_DISPLAY = { 1: 'safe', 2: 'safe', 3: 'risky - can be destroyed', 4: 'risky - can be destroyed', 5: 'risky - can be destroyed' };
+// Deterministic and guaranteed - no RNG, no destroy risk. Cost formula (10n-5) kept in
+// sync manually with server/crowns.js since this is just a heads-up preview before confirming.
+function crownCostForLevel(n) { return 10 * n - 5; }
 
 async function upgradeItem(item) {
   const targetLevel = (item.upgrade_level || 0) + 1;
@@ -1296,23 +1298,19 @@ async function upgradeItem(item) {
     showToast(`${item.name} is already at maximum upgrade level.`, true);
     return;
   }
-  const cost = 50 * targetLevel * targetLevel;
-  const chance = UPGRADE_SUCCESS_CHANCE_DISPLAY[targetLevel];
-  const risk = UPGRADE_RISK_DISPLAY[targetLevel];
-  const confirmMsg = `Upgrade ${item.name} to +${targetLevel}?\n\nCost: ${cost} gold\nSuccess chance: ${chance}%\nRisk: ${risk}\n\nGold is spent whether it succeeds or not.`;
+  const cost = crownCostForLevel(targetLevel);
+  const currentAtk = Math.round(item.bonus_atk * (1 + 0.15 * (item.upgrade_level || 0)));
+  const currentHp = Math.round(item.bonus_hp * (1 + 0.15 * (item.upgrade_level || 0)));
+  const newAtk = Math.round(item.bonus_atk * (1 + 0.15 * targetLevel));
+  const newHp = Math.round(item.bonus_hp * (1 + 0.15 * targetLevel));
+  const confirmMsg = `Upgrade ${item.name} to +${targetLevel}?\n\nCost: ${cost} Crowns (guaranteed - no risk)\n\n${currentAtk} ATK / ${currentHp} HP -> ${newAtk} ATK / ${newHp} HP`;
   if (!window.confirm(confirmMsg)) return;
 
   try {
     const data = await api('/inventory/upgrade', { method: 'POST', body: JSON.stringify({ inventoryId: item.inventory_id }) });
     state.character = data.character;
     updateTopBar();
-    if (data.outcome === 'success') {
-      showToast(`${data.itemName} upgraded to +${data.newLevel}!`);
-    } else if (data.outcome === 'fail_destroyed') {
-      showToast(`${data.itemName} was destroyed in the attempt!`, true);
-    } else {
-      showToast(`Upgrade failed. ${data.itemName} is unchanged.`, true);
-    }
+    showToast(`${data.itemName} upgraded to +${data.newLevel}! (${data.newBonusAtk} ATK / ${data.newBonusHp} HP)`);
     loadInventory();
   } catch (err) {
     showToast(err.message, true);
@@ -2824,6 +2822,48 @@ async function attackPvpTarget(targetName) {
       : `Defeated by ${data.defenderName} after ${data.roundsFought} rounds. Rating ${data.ratingBefore} -> ${data.ratingAfter} (${data.ratingChange}).`;
     showToast(resultText, !data.won);
     loadPvpPanel();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+// ---------- Crown Shop ----------
+async function loadCrownShopPanel() {
+  try {
+    const [pkgData, history] = await Promise.all([api('/crowns/packages'), api('/crowns/balance')]);
+
+    const list = document.getElementById('crown-packages-list');
+    list.innerHTML = '';
+    pkgData.packages.forEach((p) => {
+      const card = document.createElement('div');
+      card.className = 'pet-card';
+      card.innerHTML = `
+        <div class="pet-name rarity-legendary">${p.crowns} Crowns</div>
+        <div class="pet-count">$${(p.priceUsdCents / 100).toFixed(2)}</div>
+        <button class="btn-primary crown-buy-btn" data-index="${p.index}">Purchase</button>
+      `;
+      card.querySelector('.crown-buy-btn').addEventListener('click', async () => {
+        try {
+          const data = await api('/crowns/checkout', { method: 'POST', body: JSON.stringify({ packageIndex: p.index }) });
+          window.location.href = data.url;
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      });
+      list.appendChild(card);
+    });
+
+    const historyBox = document.getElementById('crown-history-box');
+    if (history.recentTransactions.length === 0) {
+      historyBox.innerHTML = '<p class="hint">No Crown activity yet.</p>';
+    } else {
+      historyBox.innerHTML = history.recentTransactions.map((t) => `
+        <div class="bonus-row">
+          <span class="bonus-source">${t.reason.replace(/_/g, ' ')} - ${t.created_at}</span>
+          <span class="bonus-values">${t.amount > 0 ? '+' : ''}${t.amount}</span>
+        </div>
+      `).join('');
+    }
   } catch (err) {
     showToast(err.message, true);
   }

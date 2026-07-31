@@ -457,6 +457,21 @@ CREATE TABLE IF NOT EXISTS pvp_duels (
   FOREIGN KEY (defender_id) REFERENCES characters(id)
 );
 
+-- Every Crown movement, in or out - real-money purchases (via Stripe), spends on
+-- upgrades, and the one-time compensation grants for the RNG-upgrade/Ironhand removal.
+-- Kept as a permanent audit log since real money is involved - if a player ever disputes
+-- a charge or a balance, this is the source of truth for what actually happened.
+CREATE TABLE IF NOT EXISTS crown_transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  character_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL, -- positive = credit, negative = spend
+  reason TEXT NOT NULL, -- 'stripe_purchase' | 'item_upgrade' | 'upgrade_reset_refund' | 'ironhand_refund'
+  stripe_session_id TEXT,
+  balance_after INTEGER NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+
 -- Depositing an item removes it from character_inventory and creates a row here (same
 -- delete-and-recreate pattern already used for Marketplace listings) - the Leader/Officers
 -- can then assign a vault item to a specific member, which deletes the vault row and
@@ -627,6 +642,7 @@ ensureColumn('characters', 'active_pet_template_id', 'INTEGER');
 ensureColumn('raids', 'boss_key', "TEXT DEFAULT 'rift_sovereign'");
 ensureColumn('characters', 'active_title_id', 'INTEGER');
 ensureColumn('characters', 'pvp_rating', 'INTEGER DEFAULT 1500');
+ensureColumn('characters', 'crowns_balance', 'INTEGER DEFAULT 0');
 
 // Existing clan leaders (from before roles existed) need their role backfilled - otherwise
 // a clan created before this update would have a leader_character_id but nobody actually
@@ -696,6 +712,49 @@ db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_character_skills_pair ON characte
 // Named bosses get an intentional 2.5x reward multiplier - that cliff is meant to be
 // there, unlike the accidental unevenness this fixes everywhere else.
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// One-time migration: removes the old RNG-based gear upgrade system (chance to fail,
+// chance to destroy the item) in favor of a deterministic Crown-purchase system, and
+// removes the Ironhand title, which becomes meaningless once there's no destruction risk
+// left to protect against.
+//
+// Naturally idempotent (safe to run on every startup, like the rebalancing functions
+// above) - it only takes action if Ironhand still exists as a title, which is only true
+// until this has actually run once. Real players already had real progress under the old
+// system, so this compensates rather than silently erasing it: everyone with upgraded
+// gear gets Crowns equal to what reaching their current level would cost under the new
+// table (their upgrade_level is then reset to 0 to match), and everyone who owns Ironhand
+// gets their 1,000,000 gold back in the same currency they spent it in.
+// ---------------------------------------------------------------------
+function migrateRemoveRngUpgradesAndIronhand() {
+  const { cumulativeCrownCostToLevel, adjustCrowns } = require('../crowns');
+
+  const ironhand = db.prepare("SELECT id FROM title_templates WHERE name = 'Ironhand'").get();
+  if (!ironhand) return; // already migrated
+
+  // Compensate every upgraded item, then reset it.
+  const upgradedItems = db.prepare('SELECT id, character_id, upgrade_level FROM character_inventory WHERE upgrade_level > 0').all();
+  const crownRefundByCharacter = {};
+  for (const item of upgradedItems) {
+    const refund = cumulativeCrownCostToLevel(item.upgrade_level);
+    crownRefundByCharacter[item.character_id] = (crownRefundByCharacter[item.character_id] || 0) + refund;
+  }
+  for (const [characterId, refund] of Object.entries(crownRefundByCharacter)) {
+    adjustCrowns(Number(characterId), refund, 'upgrade_reset_refund');
+  }
+  db.prepare('UPDATE character_inventory SET upgrade_level = 0 WHERE upgrade_level > 0').run();
+
+  // Compensate and remove Ironhand.
+  const ironhandOwners = db.prepare('SELECT character_id FROM character_titles WHERE title_template_id = ?').all(ironhand.id);
+  const refundGold = db.prepare('UPDATE characters SET gold = gold + 1000000 WHERE id = ?');
+  for (const owner of ironhandOwners) refundGold.run(owner.character_id);
+  db.prepare('UPDATE characters SET active_title_id = NULL WHERE active_title_id = ?').run(ironhand.id);
+  db.prepare('DELETE FROM character_titles WHERE title_template_id = ?').run(ironhand.id);
+  db.prepare('DELETE FROM title_templates WHERE id = ?').run(ironhand.id);
+
+  console.log(`[migration] Removed RNG upgrades + Ironhand - compensated ${Object.keys(crownRefundByCharacter).length} character(s) with Crowns, ${ironhandOwners.length} Ironhand owner(s) with gold.`);
+}
+
 function rebalanceMonsterRewards() {
   const { expToNextLevel } = require('../gameLogic');
   const BOSS_NAMES = new Set(['Ganglord Sid', 'The Overseer', 'The Warden', 'Dockmaster Kane', 'Zhul, the Devourer', 'The Wound-Walker', 'The Depth-Caller', "The Sovereign's Herald"]);
@@ -748,3 +807,4 @@ function rebalanceQuestRewards() {
 module.exports = db;
 module.exports.rebalanceMonsterRewards = rebalanceMonsterRewards;
 module.exports.rebalanceQuestRewards = rebalanceQuestRewards;
+module.exports.migrateRemoveRngUpgradesAndIronhand = migrateRemoveRngUpgradesAndIronhand;

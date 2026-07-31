@@ -70,6 +70,7 @@
         </div>
       </div>
       <div class="stat-pill gold">Gold <span id="pill-gold">-</span></div>
+      <div class="stat-pill gold" id="pill-crowns-wrap">Crowns <span id="pill-crowns">-</span></div>
     </div>
     <div class="topbar-bars">
       <div class="bar-wrap">
@@ -100,6 +101,7 @@
       <button class="nav-item" data-panel="panel-pets">Pets</button>
       <button class="nav-item" data-panel="panel-titles">Titles</button>
       <button class="nav-item" data-panel="panel-pvp">PvP</button>
+      <button class="nav-item" data-panel="panel-crowns">Crown Shop</button>
       <button class="nav-item hidden" id="admin-nav-item" data-panel="panel-admin">Admin</button>
       <div class="sidenav-art">
         <div class="mask-icon">&#9760;</div>
@@ -435,6 +437,15 @@
         <thead><tr><th>#</th><th>Name</th><th>Level</th><th>Rating</th><th></th></tr></thead>
         <tbody id="pvp-leaderboard-body"></tbody>
       </table>
+    </section>
+
+    <!-- CROWN SHOP PANEL -->
+    <section class="panel hidden" id="panel-crowns">
+      <h2 class="panel-title">Crown Shop</h2>
+      <p class="hint">Crowns are bought with real money and spent only on guaranteed item upgrades - no gold, gear, or PvP attacks are ever sold here.</p>
+      <div class="pets-list" id="crown-packages-list"></div>
+      <h3 class="subheading" style="margin-top:16px;">Recent Activity</h3>
+      <div class="bonus-breakdown-box" id="crown-history-box"></div>
     </section>
 
     <section class="panel hidden" id="panel-admin">

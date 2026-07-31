@@ -399,22 +399,51 @@ Everyone shares the same world, monsters, and leaderboard.
   +8% bonus applied precisely to a World Boss kill's reward share
   (4,000 → 4,320). Applied consistently across every combat path and
   reflected on the Character page's detailed stat breakdown.
-- **Titles:** the permanent, purchased counterpart to Pets - bought once
-  with gold rather than RNG-dropped, owned forever, own tab. Only one
-  active at a time, same "collection, not a stacking bonus slot" feel as
-  Pets. Built with a generic effect-type system rather than a simple stat
-  multiplier, since a title's effect can be a genuine game-rule change
-  rather than a number - the first title, **Ironhand** (1,000,000 gold),
-  removes gear-upgrade destruction risk entirely: upgrades can still
-  fail, but the item is never lost, only the gold spent attempting it.
-  Verified with a real A/B test rather than trusting the math on paper:
-  created 20 items at +4 (targeting +5, normally a 35% chance of losing
-  the item on failure) and attempted upgrading all of them twice -
-  without Ironhand active, 8 of 20 were destroyed; with it active
-  immediately after, resetting the same 20 items back to +4, 0 of 20
-  were destroyed, with a mix of real successes and safe failures in
-  between. Confirms the effect works precisely as intended, not just
-  that it doesn't crash.
+- **Titles:** the permanent, purchased counterpart to Pets - own tab,
+  only one active at a time. Framework kept in the codebase (a generic
+  effect-type system, not just a stat multiplier) for future titles, but
+  as of the Crown monetization redesign below, the system's original
+  first title, Ironhand, has been retired - see below for why.
+- **Monetization - Crowns (real-money currency):** `$4.99 = 500 Crowns`,
+  own tab (Crown Shop), spent *only* on guaranteed gear upgrades - never
+  gold, gear, or PvP attacks directly, a deliberate line held throughout
+  design discussion. This replaced the original gear-upgrade system
+  entirely: upgrading used to be RNG-based (a chance to fail, and at
+  +3/+4/+5 a chance to destroy the item outright), with Ironhand (a
+  1,000,000-gold title) as the only way to remove that risk. Upgrading
+  is now deterministic and guaranteed - pay Crowns, get the upgrade,
+  every time, no chance of losing the item - which made Ironhand
+  meaningless and it was retired. Cost table is linear (`10n - 5`):
+  +1 through +5 cost 5/15/25/35/45 Crowns, 125 total to fully max one
+  item. Verified live through the real API across all five levels: every
+  cost matched exactly, every attempt succeeded, and the max-level cap
+  correctly blocked a sixth attempt.
+  **Compensating existing players:** real players already had real
+  progress under the old system, so this doesn't silently erase it - a
+  one-time migration grants Crowns equal to what reaching their current
+  upgrade level would cost under the new table (then resets the level to
+  match), and refunds Ironhand owners their full 1,000,000 gold in the
+  same currency they spent it in. Verified with a full simulation of
+  realistic pre-migration state (a +5 item, a +3 item, an Ironhand owner,
+  an untouched character) and confirmed every compensation number
+  exactly - including catching a real bug before it shipped: the
+  migration is only safe to run on every server startup (matching how
+  every other rebalancing pass in this codebase works) because it's
+  idempotent, but idempotency depended on Ironhand never being recreated
+  after removal. The original seed script would have recreated it every
+  restart, which would have made the migration re-run and re-refund
+  forever. Caught by testing three consecutive simulated restarts before
+  shipping, not after.
+  **Stripe integration**: Checkout Session creation and a webhook that
+  credits Crowns only once a payment actually clears (never the
+  client-side success redirect, which could be reached without paying).
+  The webhook needed its own raw-body parser mounted *before* the
+  global JSON middleware - Stripe's signature verification needs the
+  exact raw request bytes, and the global parser would otherwise consume
+  them first. Both real API keys are pending (the code is complete and
+  live-tested for its "not configured yet" fallback path, which fails
+  gracefully with a clear error rather than crashing); full end-to-end
+  purchase flow will need real keys before launch.
 - **PvP:** open, level-unrestricted dueling with an ELO rating system
   (starting at 1500, K-factor 32) - own tab, its own leaderboard. Each
   character gets 15 attacks per day total, max 3 against the same
@@ -674,6 +703,12 @@ Two environment variables control where production data lives, so it survives re
   restart or redeploy doesn't log every player out - only losing the disk they're on would.
 - `SESSION_SECRET` - any random string; secures session cookies. Set this in production
   instead of relying on the built-in dev default.
+- `STRIPE_SECRET_KEY` - required for the Crown Shop to actually work. Without it, Crown
+  purchase attempts fail gracefully with a clear "not configured yet" error rather than
+  crashing - the rest of the game is unaffected either way.
+- `STRIPE_WEBHOOK_SECRET` - required for the Stripe webhook to verify incoming events are
+  genuinely from Stripe. Set this to the signing secret Stripe gives you when you register
+  the webhook endpoint (`<your-domain>/api/crowns/webhook`) in the Stripe dashboard.
 
 Point both `DB_PATH` and `SESSIONS_PATH` at the same persistent disk.
 

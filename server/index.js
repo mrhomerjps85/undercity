@@ -45,6 +45,11 @@ const sessionMiddleware = session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }, // 1 week
 });
 
+// Stripe webhook MUST be mounted before express.json() with its own raw-body parser -
+// signature verification needs the exact raw bytes, which express.json() would otherwise
+// have already consumed and parsed away by the time this route saw the request.
+app.post('/api/crowns/webhook', express.raw({ type: 'application/json' }), require('./routes/crowns').handleStripeWebhook);
+
 app.use(express.json());
 app.use(sessionMiddleware);
 
@@ -69,6 +74,7 @@ app.use('/api/skills', skillsRoutes);
 app.use('/api/pets', require('./routes/pets'));
 app.use('/api/titles', require('./routes/titles'));
 app.use('/api/pvp', require('./routes/pvp'));
+app.use('/api/crowns', require('./routes/crowns'));
 
 // Global error handler - without this, any uncaught exception in a route handler falls
 // through to Express's default handler, which returns a non-JSON response. The frontend's

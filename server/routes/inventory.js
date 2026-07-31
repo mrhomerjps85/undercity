@@ -1,10 +1,10 @@
 const express = require('express');
 const db = require('../db/db');
 const { requireAuth, requireCharacter } = require('../middleware');
-const { MAX_UPGRADE_LEVEL, upgradeCost, attemptUpgrade } = require('../gameLogic');
+const { applyUpgradeMultiplier } = require('../gameLogic');
 const { serializeCharacter, getActiveSetInfo } = require('./character');
 const { POTION_DEFINITIONS, buyPotion } = require('../potions');
-const { getActiveTitleEffect } = require('../titles');
+const { MAX_UPGRADE_LEVEL: CROWN_MAX_UPGRADE_LEVEL, crownCostForLevel, adjustCrowns } = require('../crowns');
 
 const router = express.Router();
 
@@ -142,7 +142,7 @@ router.post('/sell', requireAuth, requireCharacter, (req, res) => {
 router.post('/upgrade', requireAuth, requireCharacter, (req, res) => {
   const { inventoryId } = req.body;
   const invItem = db.prepare(`
-    SELECT ci.*, it.name, it.is_quest_item, it.slot FROM character_inventory ci
+    SELECT ci.*, it.name, it.is_quest_item, it.slot, it.bonus_atk, it.bonus_hp FROM character_inventory ci
     JOIN item_templates it ON it.id = ci.item_template_id
     WHERE ci.id = ? AND ci.character_id = ?
   `).get(inventoryId, req.character.id);
@@ -153,38 +153,29 @@ router.post('/upgrade', requireAuth, requireCharacter, (req, res) => {
   if (invItem.is_quest_item || !EQUIPPABLE_SLOTS.includes(invItem.slot)) {
     return res.status(400).json({ error: 'That item cannot be upgraded.' });
   }
-  if (invItem.upgrade_level >= MAX_UPGRADE_LEVEL) {
-    return res.status(400).json({ error: `${invItem.name} is already at the maximum upgrade level (+${MAX_UPGRADE_LEVEL}).` });
+  if (invItem.upgrade_level >= CROWN_MAX_UPGRADE_LEVEL) {
+    return res.status(400).json({ error: `${invItem.name} is already at the maximum upgrade level (+${CROWN_MAX_UPGRADE_LEVEL}).` });
   }
 
   const targetLevel = invItem.upgrade_level + 1;
-  const cost = upgradeCost(targetLevel);
-  if (req.character.gold < cost) {
-    return res.status(400).json({ error: `Not enough gold. Upgrading to +${targetLevel} costs ${cost}.` });
+  const cost = crownCostForLevel(targetLevel);
+  if (req.character.crowns_balance < cost) {
+    return res.status(400).json({ error: `Not enough Crowns. Upgrading to +${targetLevel} costs ${cost} Crowns.` });
   }
 
-  db.prepare('UPDATE characters SET gold = gold - ? WHERE id = ?').run(cost, req.character.id);
-
-  const result = attemptUpgrade(invItem.upgrade_level);
-  const titleEffect = getActiveTitleEffect(req.character.id);
-  if (result.outcome === 'fail_destroyed' && titleEffect.noUpgradeDestroy) {
-    // Ironhand equipped - the item survives, same as any other safe failure. The upgrade
-    // still didn't succeed and the gold is still spent, just nothing is lost.
-    result.outcome = 'fail_safe';
-  }
-  if (result.outcome === 'success') {
-    db.prepare('UPDATE character_inventory SET upgrade_level = ? WHERE id = ?').run(result.newLevel, inventoryId);
-  } else if (result.outcome === 'fail_destroyed') {
-    db.prepare('DELETE FROM character_inventory WHERE id = ?').run(inventoryId);
-  }
-  // fail_safe: gold already spent, item untouched, nothing else to update.
+  // Deterministic and guaranteed - no RNG, no chance of failure or losing the item. Crowns
+  // spent here are real money, so the outcome is never left to chance.
+  const newBalance = adjustCrowns(req.character.id, -cost, 'item_upgrade');
+  db.prepare('UPDATE character_inventory SET upgrade_level = ? WHERE id = ?').run(targetLevel, inventoryId);
 
   const updated = db.prepare('SELECT * FROM characters WHERE id = ?').get(req.character.id);
   res.json({
-    outcome: result.outcome,
     itemName: invItem.name,
-    newLevel: result.newLevel,
+    newLevel: targetLevel,
     costPaid: cost,
+    crownsBalance: newBalance,
+    newBonusAtk: applyUpgradeMultiplier(invItem.bonus_atk, targetLevel),
+    newBonusHp: applyUpgradeMultiplier(invItem.bonus_hp, targetLevel),
     character: serializeCharacter(updated),
   });
 });
