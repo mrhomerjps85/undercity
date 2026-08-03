@@ -237,3 +237,12 @@ All icons in `public/images/` are from [game-icons.net](https://game-icons.net),
 | depth_callers_coil.svg | spiral-tentacle | lorc |
 | heralds_greaves.svg | trousers | lucasms |
 | heralds_aegis.svg | winged-shield | lorc |
+| sovereigns_chain.svg | gem-necklace | lorc |
+| sovereigns_bulwark.svg | shield-echoes | lorc |
+| choirs_chime.svg | double-necklace | delapouite |
+| choirs_ward.svg | checked-shield | lorc |
+| kings_collar.svg | intricate-necklace | delapouite |
+| kings_bulwark.svg | spiked-shield | delapouite |
+| kingpins_enforcer.svg | brass-knuckles | delapouite |
+| unbounds_ward.svg | iron-mask | lorc |
+| riftwalkers_treads.svg | metal-boot | delapouite |

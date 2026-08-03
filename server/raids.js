@@ -17,7 +17,7 @@ const RAID_BOSSES = {
     defense: 40,
     totalExpReward: 30000,
     totalGoldReward: 20000,
-    itemNames: ["Choir's Discord", "Choir's Vestment", "Choir's Halo", "Choir's Grasp"],
+    itemNames: ["Choir's Discord", "Choir's Vestment", "Choir's Halo", "Choir's Grasp", "Choir's Chime", "Choir's Ward"],
   },
   rift_sovereign: {
     key: 'rift_sovereign',
@@ -32,6 +32,7 @@ const RAID_BOSSES = {
     itemNames: [
       "Sovereign's Blade", "Sovereign's Plate", "Sovereign's Crown",
       "Sovereign's Grasp", "Sovereign's Greaves", "Sovereign's Stride",
+      "Sovereign's Chain", "Sovereign's Bulwark",
     ],
   },
   unraveled_king: {
@@ -47,6 +48,7 @@ const RAID_BOSSES = {
     itemNames: [
       "King's Ruinblade", "King's Plate", "King's Crown",
       "King's Grip", "King's Greaves", "King's Stride",
+      "King's Collar", "King's Bulwark",
     ],
   },
 };

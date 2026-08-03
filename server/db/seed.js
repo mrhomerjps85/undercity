@@ -578,6 +578,11 @@ function seed() {
   // above Legendary). Zhul's Crown is a bonus drop from the final boss, same pattern as
   // Warden's Grip / Overseer's Core - keeps the finale worth revisiting after the quest is done.
   it.zhulsGrasp = insertItem.get("Zhul's Grasp", 'hands', 41, 30, 60, 0, 'dungeon', 0, 'zhuls_grasp').id;
+  // Standalone (not part of Zhul's Blessing, which is deliberately a 4-piece set) - added
+  // to close a real gap found in a full item-catalog audit: the first two quests of this
+  // chain (levels 35, 38) gave no item at all, leaving a thin stretch before the Blessing
+  // set's first piece unlocks at 41.
+  it.riftwalkersTreads = insertItem.get("Riftwalker's Treads", 'boots', 35, 18, 70, 0, 'quest', 0, 'riftwalkers_treads').id;
   it.zhulsAegis = insertItem.get("Zhul's Aegis", 'chest', 44, 20, 160, 0, 'dungeon', 0, 'zhuls_aegis').id;
   it.zhulsAnnihilator = insertItem.get("Zhul's Annihilator", 'weapon', 47, 65, 50, 0, 'dungeon', 0, 'zhuls_annihilator').id;
   it.zhulsCrown = insertItem.get("Zhul's Crown", 'head', 47, 25, 90, 0, 'dungeon', 0, 'zhuls_crown').id;
@@ -595,6 +600,7 @@ function seed() {
   // "big finale reward" so far has landed on weapon (4 for 4) - neck/shield/legs/boots had
   // never gotten one. Not part of an existing set; a standalone legendary reward.
   it.unboundsChain = insertItem.get("The Unbound's Chain", 'neck', 50, 40, 130, 0, 'worldboss', 0, 'unbounds_chain').id;
+  it.unboundsWard = insertItem.get("The Unbound's Ward", 'shield', 50, 0, 145, 0, 'worldboss', 0, 'unbounds_ward').id;
 
   // Sovereign's Dominion - the Raid-exclusive set, guaranteed (not %-chance) to every
   // participant on a successful raid kill, one random piece each. Legendary rather than
@@ -606,12 +612,19 @@ function seed() {
   it.sovereignsGrasp = insertItem.get("Sovereign's Grasp", 'hands', 50, 20, 60, 0, 'raid', 0, 'sovereigns_grasp').id;
   it.sovereignsGreaves = insertItem.get("Sovereign's Greaves", 'legs', 50, 15, 110, 0, 'raid', 0, 'sovereigns_greaves').id;
   it.sovereignsStride = insertItem.get("Sovereign's Stride", 'boots', 50, 15, 75, 0, 'raid', 0, 'sovereigns_stride').id;
+  // Sovereign's Dominion originally skipped neck/shield entirely - added to close a real
+  // gap found in a full item-catalog audit: raid sets consistently never rewarded these
+  // two slots anywhere in the game, capping them at crafted/dungeon-drop power forever.
+  it.sovereignsChain = insertItem.get("Sovereign's Chain", 'neck', 50, 28, 75, 0, 'raid', 0, 'sovereigns_chain').id;
+  it.sovereignsBulwark = insertItem.get("Sovereign's Bulwark", 'shield', 50, 0, 120, 0, 'raid', 0, 'sovereigns_bulwark').id;
 
   // Choir's Requiem - The Hollow Choir's exclusive 4-piece set, an easier entry-level raid.
   it.choirsDiscord = insertItem.get("Choir's Discord", 'weapon', 50, 31, 11, 0, 'raid', 0, 'choirs_discord').id;
   it.choirsVestment = insertItem.get("Choir's Vestment", 'chest', 50, 11, 98, 0, 'raid', 0, 'choirs_vestment').id;
   it.choirsHalo = insertItem.get("Choir's Halo", 'head', 50, 13, 63, 0, 'raid', 0, 'choirs_halo').id;
   it.choirsGrasp = insertItem.get("Choir's Grasp", 'hands', 50, 14, 42, 0, 'raid', 0, 'choirs_grasp').id;
+  it.choirsChime = insertItem.get("Choir's Chime", 'neck', 50, 20, 53, 0, 'raid', 0, 'choirs_chime').id;
+  it.choirsWard = insertItem.get("Choir's Ward", 'shield', 50, 0, 85, 0, 'raid', 0, 'choirs_ward').id;
 
   // King's Ruin - The Unraveled King's exclusive 6-piece set, a harder step up from the
   // Rift Sovereign's Sovereign's Dominion.
@@ -621,6 +634,8 @@ function seed() {
   it.kingsGrip = insertItem.get("King's Grip", 'hands', 50, 26, 78, 0, 'raid', 0, 'kings_grip').id;
   it.kingsGreaves = insertItem.get("King's Greaves", 'legs', 50, 20, 143, 0, 'raid', 0, 'kings_greaves').id;
   it.kingsStride = insertItem.get("King's Stride", 'boots', 50, 20, 98, 0, 'raid', 0, 'kings_stride').id;
+  it.kingsCollar = insertItem.get("King's Collar", 'neck', 50, 36, 98, 0, 'raid', 0, 'kings_collar').id;
+  it.kingsBulwark = insertItem.get("King's Bulwark", 'shield', 50, 0, 155, 0, 'raid', 0, 'kings_bulwark').id;
 
   // The Scar's exclusive rewards - one quest reward, one boss-kill drop. Legendary, not
   // mythic - Zhul's Blessing stays the singular "ultimate" mythic tier, this is the next
@@ -645,6 +660,10 @@ function seed() {
   // World boss reward - equippable by anyone who reaches level 25, droppable by anyone who helps
   // defeat the Kingpin regardless of their own level (see world_boss_drops below).
   it.kingpinsSignet = insertItem.get("Kingpin's Signet", 'neck', 25, 30, 100, 0, 'worldboss', 0, 'kingpins_signet').id;
+  // Second world-boss drop, added to close a real gap found in a full item-catalog audit:
+  // world bosses had only ever rewarded neck items across their entire history - a repeat
+  // world-boss farmer had no other slot to chase at all.
+  it.kingpinsEnforcer = insertItem.get("Kingpin's Enforcer", 'weapon', 25, 40, 12, 0, 'worldboss', 0, 'kingpins_enforcer').id;
 
   // ---------------------------------------------------------------------
   // MONSTER DROPS
@@ -677,22 +696,25 @@ function seed() {
   insertSetBonus.run(smugglersLegacySet, 2, 16, 45);   // any 2 pieces
   insertSetBonus.run(smugglersLegacySet, 3, 38, 95);   // full 3-piece set
 
-  const sovereignsDominionSet = insertSet.get("Sovereign's Dominion", 'A full 6-piece set torn from the Rift Sovereign - proof a clan stood together and won.').id;
-  [it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride].forEach(itemId => assignToSet.run(sovereignsDominionSet, itemId));
+  const sovereignsDominionSet = insertSet.get("Sovereign's Dominion", 'A full 8-piece set torn from the Rift Sovereign - proof a clan stood together and won.').id;
+  [it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.sovereignsChain, it.sovereignsBulwark].forEach(itemId => assignToSet.run(sovereignsDominionSet, itemId));
   insertSetBonus.run(sovereignsDominionSet, 2, 8, 24);
   insertSetBonus.run(sovereignsDominionSet, 4, 16, 48);
   insertSetBonus.run(sovereignsDominionSet, 6, 30, 90);
+  insertSetBonus.run(sovereignsDominionSet, 8, 44, 132);
 
-  const choirsRequiemSet = insertSet.get("Choir's Requiem", 'A 4-piece set unraveled from the Hollow Choir - the entry point into raiding.').id;
-  [it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp].forEach(itemId => assignToSet.run(choirsRequiemSet, itemId));
+  const choirsRequiemSet = insertSet.get("Choir's Requiem", 'A full 6-piece set unraveled from the Hollow Choir - the entry point into raiding.').id;
+  [it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.choirsChime, it.choirsWard].forEach(itemId => assignToSet.run(choirsRequiemSet, itemId));
   insertSetBonus.run(choirsRequiemSet, 2, 6, 18);
   insertSetBonus.run(choirsRequiemSet, 4, 14, 40);
+  insertSetBonus.run(choirsRequiemSet, 6, 25, 71);
 
-  const kingsRuinSet = insertSet.get("King's Ruin", "A full 6-piece set stripped from the Unraveled King - the hardest raid a clan can face.").id;
-  [it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride].forEach(itemId => assignToSet.run(kingsRuinSet, itemId));
+  const kingsRuinSet = insertSet.get("King's Ruin", "A full 8-piece set stripped from the Unraveled King - the hardest raid a clan can face.").id;
+  [it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.kingsCollar, it.kingsBulwark].forEach(itemId => assignToSet.run(kingsRuinSet, itemId));
   insertSetBonus.run(kingsRuinSet, 2, 10, 31);
   insertSetBonus.run(kingsRuinSet, 4, 21, 62);
   insertSetBonus.run(kingsRuinSet, 6, 39, 117);
+  insertSetBonus.run(kingsRuinSet, 8, 64, 192);
 
   const wardensRegaliaSet = insertSet.get("Warden's Regalia", "Weapon, plate, and grip stripped from the Underworks' ruler.").id;
   [it.wardensCleaver, it.underworksPlate, it.wardensGrip].forEach(itemId => assignToSet.run(wardensRegaliaSet, itemId));
@@ -715,7 +737,7 @@ function seed() {
     uncommon: [it.knuckles, it.pipe, it.boots, it.kevlar, it.riotShield, it.steelChain, it.reinforcedGloves],
     rare: [it.cargoPants, it.reinforcedHelmet, it.machete, it.tacticalVest, it.steelToeBoots, it.spikedGauntlets, it.surgeonsTrophyBlade, it.runnersBracer],
     epic: [it.bhNeck, it.nightVisionVisor, it.reinforcedCargoPants, it.towerShield, it.warCleaver, it.underworksPlate, it.bountyVest, it.bountyBoots, it.blacksiteVisor, it.riftForgedBlade, it.voidplateArmor, it.cultistsLeggings, it.smugglersVest],
-    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.heraldsTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersShell, it.depthCallersCoil, it.heraldsGreaves, it.heraldsAegis],
+    legendary: [it.juggernautPlate, it.blastBoots, it.titanGripKnuckles, it.executionersAxe, it.wardensCleaver, it.wardensGrip, it.overseerRailgun, it.overseerCore, it.kingpinsSignet, it.kingpinsEnforcer, it.heraldsTreads, it.riftwalkersTreads, it.devourersCharm, it.aegisOfBreach, it.kanesGrappleHook, it.kanesGoldenAnchor, it.unboundsChain, it.unboundsWard, it.sovereignsBlade, it.sovereignsPlate, it.sovereignsCrown, it.sovereignsGrasp, it.sovereignsGreaves, it.sovereignsStride, it.sovereignsChain, it.sovereignsBulwark, it.choirsDiscord, it.choirsVestment, it.choirsHalo, it.choirsGrasp, it.choirsChime, it.choirsWard, it.kingsRuinblade, it.kingsPlate, it.kingsCrown, it.kingsGrip, it.kingsGreaves, it.kingsStride, it.kingsCollar, it.kingsBulwark, it.scarSealersGrasp, it.woundWalkersMaw, it.depthCallersShell, it.depthCallersCoil, it.heraldsGreaves, it.heraldsAegis],
     mythic: [it.zhulsGrasp, it.zhulsAegis, it.zhulsAnnihilator, it.zhulsCrown],
   };
   for (const [rarity, itemIds] of Object.entries(rarityGroups)) {
@@ -985,7 +1007,7 @@ function seed() {
   // Zhul's Blessing, a Mythic 4-piece set (the tier above Legendary).
   const qz1 = insertQuest.get(
     'Cracks in Reality', 'A tear has opened in the fabric of the city itself. Rift Stalkers are pouring through - hold the line.',
-    'kill', m.riftStalker, null, 12, 35, null, 2700, 1350, null, zoneZhulBreach
+    'kill', m.riftStalker, null, 12, 35, null, 2700, 1350, it.riftwalkersTreads, zoneZhulBreach
   ).id;
 
   const qz2 = insertQuest.get(
@@ -1128,6 +1150,7 @@ function seed() {
 
   const insertWorldBossDrop = db.prepare('INSERT OR IGNORE INTO world_boss_drops (world_boss_id, item_template_id, drop_chance) VALUES (?, ?, ?)');
   insertWorldBossDrop.run(kingpin, it.kingpinsSignet, 0.15);
+  insertWorldBossDrop.run(kingpin, it.kingpinsEnforcer, 0.15);
 
   // Second world boss - The Unbound, placed at Angelio St.'s entrance rather than gated
   // inside a high-level zone, so the "anyone can help regardless of level" spirit stays
@@ -1136,6 +1159,7 @@ function seed() {
     'The Unbound', angelioGrid['4,1'], 50, 220000, 220000, 95, 38, 14400, 30000, 18000, 'the_unbound'
   ).id;
   insertWorldBossDrop.run(theUnbound, it.unboundsChain, 0.15);
+  insertWorldBossDrop.run(theUnbound, it.unboundsWard, 0.15);
 
   // ---------------------------------------------------------------------
   // NPCS

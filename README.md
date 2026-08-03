@@ -223,6 +223,33 @@ Everyone shares the same world, monsters, and leaderboard.
   take effect on a redeploy. Fixed to update every column, and verified
   by deliberately corrupting a seeded item's stats, redeploying, and
   confirming it self-corrected back to the real values.
+- **Item catalog audit + gap fixes:** a full review of all 123 items across
+  every source (shop/dungeon/quest/raid/worldboss/crafted), queried
+  directly from the database rather than estimated from memory. Found
+  and fixed three real gaps: (1) all three raid sets consistently skipped
+  Neck and Shield entirely - added both to every set (Sovereign's
+  Dominion and King's Ruin go from 6 to 8 pieces with a new top bonus
+  tier each, Choir's Requiem from 4 to 6), so a dedicated raider now has
+  a best-in-slot path for all 8 slots, not 6; (2) World Bosses had
+  *only ever* rewarded Neck items across their entire history - added a
+  second drop to each (a weapon for the Kingpin, a shield for The
+  Unbound) so repeat world-boss farmers aren't chasing the same slot
+  forever; (3) levels 35-39 were a genuine thin patch in the Zhul Breach
+  quest chain (the first two quests gave no item at all) - added a
+  standalone reward to the first quest rather than making players wait
+  until level 41 for their first piece of gear from the zone. Verified
+  live rather than trusting the data alone: equipped a full 8-piece
+  Sovereign's Dominion set and confirmed the character's actual computed
+  stats picked up the new +44 ATK/+132 HP tier exactly (the first time
+  any raid set had ever reached 8 pieces, so this was genuinely
+  untested territory), confirmed all three raid reward pools return the
+  correct new item counts, and completed the Zhul Breach's first quest
+  through real combat to confirm it now grants the new item correctly.
+  Re-ran the full audit afterward to confirm every targeted gap actually
+  closed (each raid set now has 3 neck items and 3 shield items instead
+  of 0; world bosses have a weapon and a shield drop instead of only
+  neck; the 35-39 bracket grew from 2 items to 3) rather than assuming
+  the fix worked.
 - **Mythic rarity + Zhul's Blessing:** a new tier above Legendary, used
   exclusively by this quest chain's rewards (Zhul's Grasp, Aegis,
   Annihilator, and Crown - the last a repeatable bonus drop from the final
